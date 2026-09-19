@@ -55,6 +55,18 @@ Other rules: paths are normalized lexically (`./a//b/../c` → `a/c`); names are
 characters / 255 bytes per segment; files are opened with `NOFOLLOW_LINKS`; parents created for a
 write are re-checked afterwards. Error messages never contain absolute server paths.
 
+## Reads
+
+- `readText(path, maxBytes)` / `readChunk(path, offset, length)` — 16 B..4 MB per call, both ends
+  moved to UTF-8 character boundaries; continue from `TextChunk.nextOffsetBytes` until `eof`.
+  `binary` is set when the chunk contains NUL bytes.
+- `readLines(path, from, to)` — 1-based inclusive; at most 5,000 lines / 1 MB of text per call, lines
+  longer than 16 KB are cut with a `… [line cut: N MB in total]` marker; `hasMore` says lines follow,
+  `truncated` says a budget or a cut line shortened the answer. `LineSlice.numbered()` renders
+  `12| text` lines for prompts. `countLines(path)` streams the whole file once.
+- `list(dir)` — folders first, then names; at most 1,000 entries (`truncated` + `totalEntries`);
+  links and special files are listed with kind `SYMLINK` / `OTHER` but can never be opened.
+
 ## Writes, limits and quota
 
 - Generic writes (`writeText`, `append`, `delete`) only target files inside `files/`, `code/`,
