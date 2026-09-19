@@ -16,6 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.ArrayList;
@@ -94,6 +95,32 @@ class TraceIntegrationTest {
         assertThat(getJson("/api/agents/" + agent.value() + "/events?limit=0")).hasSize(1);
     }
 
+    /** v0.0.26 🍊 An HTTP client pages solely with the opaque cursor header of the previous page. */
+    @Test
+    void agentEventPageSuppliesAnOpaqueCursorForTheNextHttpPage() throws Exception {
+        String room = newRoom();
+        AgentId agent = hire(room, Role.ENGINEER);
+        for (int i = 1; i <= 5; i++) {
+            monitor.info(agent, ModuleKind.MAIN, "page event " + i, Map.of());
+        }
+
+        MockHttpServletResponse first = getOk("/api/agents/" + agent.value() + "/events?limit=3");
+        String cursor = first.getHeader(TraceController.NEXT_CURSOR_HEADER);
+        assertThat(cursor).isNotBlank();
+        assertThat(texts(mapper.readTree(first.getContentAsString())))
+                .containsExactly("page event 5", "page event 4", "page event 3");
+
+        MockHttpServletResponse second = getOk("/api/agents/" + agent.value() + "/events?limit=3&cursor=" + cursor);
+        assertThat(texts(mapper.readTree(second.getContentAsString()))).containsExactly("page event 2", "page event 1",
+                "Joined the team as Software Engineer.");
+        MockHttpServletResponse third = getOk("/api/agents/" + agent.value() + "/events?limit=3&cursor="
+                + second.getHeader(TraceController.NEXT_CURSOR_HEADER));
+        assertThat(texts(mapper.readTree(third.getContentAsString()))).isEmpty();
+        assertThat(third.getHeader(TraceController.NEXT_CURSOR_HEADER)).isNull();
+        assertThat(errorCode("/api/agents/" + agent.value() + "/events?cursor=not-a-cursor", 400))
+                .isEqualTo("BAD_REQUEST");
+    }
+
     /** v0.0.12 🍊 Events have exactly the contract fields; optional ones are omitted when empty. */
     @Test
     void restShapesMatchTheContract() throws Exception {
@@ -136,6 +163,11 @@ class TraceIntegrationTest {
         assertThat(errorCode("/api/agents/" + stranger.value() + "/events", 404)).isEqualTo("NOT_FOUND");
         assertThat(errorCode("/api/traces/bad!id", 400)).isEqualTo("BAD_REQUEST");
         assertThat(errorCode("/api/traces/" + "x".repeat(40), 400)).isEqualTo("BAD_REQUEST");
+    }
+
+    /** v0.0.26 🍊 GET that must succeed, with headers. */
+    private MockHttpServletResponse getOk(String url) throws Exception {
+        return mvc.perform(get(url)).andExpect(status().isOk()).andReturn().getResponse();
     }
 
     /** v0.0.12 🍊 GET that must succeed, parsed. */

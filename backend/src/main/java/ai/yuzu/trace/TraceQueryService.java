@@ -4,7 +4,6 @@ import ai.yuzu.agent.AgentService;
 import ai.yuzu.common.error.BadRequestException;
 import ai.yuzu.common.id.AgentId;
 import ai.yuzu.common.time.NaturalTime;
-import ai.yuzu.monitor.ModuleEvent;
 import ai.yuzu.monitor.ModuleEventStore;
 import ai.yuzu.monitor.ModuleEventView;
 import ai.yuzu.monitor.TraceIds;
@@ -41,13 +40,26 @@ public class TraceQueryService {
 
     /** v0.0.12 🍊 An agent's events newest first; {@code beforeSeq} pages to older ones (NOT_FOUND for unknown agents). */
     public List<ModuleEventView> agentEvents(AgentId agentId, Long beforeSeq, int limit) {
+        return agentEventPage(agentId, beforeSeq, limit).events();
+    }
+
+    /**
+     * v0.0.26 🍊 One page plus an opaque cursor for the next one, so an HTTP client never has to know about seq.
+     *
+     * <p>The body contract stays {@code ModuleEvent[]}; the cursor travels in a response header.</p>
+     */
+    public EventPage agentEventPage(AgentId agentId, Long beforeSeq, int limit) {
         agents.require(agentId);
         store.flush();
-        int page = Math.max(1, Math.min(limit, MAX_LIMIT));
-        List<ModuleEvent> events = beforeSeq == null
-                ? agentEvents.latest(agentId, page)
-                : agentEvents.before(agentId, beforeSeq, page);
-        return events.stream().map(e -> e.toView(time)).toList();
+        int size = Math.max(1, Math.min(limit, MAX_LIMIT));
+        AgentEventRepository.Page page = agentEvents.page(agentId, beforeSeq, size);
+        List<ModuleEventView> views = page.events().stream().map(e -> e.toView(time)).toList();
+        String cursor = views.size() < size || page.oldestSeq() == null ? null : Cursors.encode(page.oldestSeq());
+        return new EventPage(views, cursor);
+    }
+
+    /** v0.0.26 🍊 A page of an agent's events and the cursor that fetches the next (older) page, null when exhausted. */
+    public record EventPage(List<ModuleEventView> events, String nextCursor) {
     }
 
     /** v0.0.12 🍊 Every event of a trace across agents, in time order (BAD_REQUEST for a malformed id). */
