@@ -1,6 +1,6 @@
 # ai.yuzu.task
 
-> v0.0.20 🍊 The task and ticket system: room-level tickets and every agent's ONE current task list.
+> v0.0.29 🍊 The task and ticket system: room-level tickets and every agent's ONE current task list.
 
 ## Responsibility
 
@@ -12,13 +12,16 @@
 - **Approval**: a list is archived only when every item is `DONE`/`STRUCK`, approval was requested, and the
   publisher (an agent holding `TASK_APPROVE`) or any human of the room approves. The planning side can never
   end a task flow by itself.
+- **Governance** (v0.0.29): `ticket.TicketGovernor` watches the group chat and, when a coworker takes a human
+  request on privately, makes the Project Manager @mention that coworker once and routes the work through a
+  ticket. A `closure` reply ends the exchange, so the reminder can never turn into a loop.
 
 ## Sub-packages
 
 | Package | Main classes |
 |---|---|
 | `ai.yuzu.task` | `Actor` (HUMAN/AGENT, id, name), `ActorResolver` (verified actors, room membership, permission checks), `TaskText` (text normalization and limits) |
-| `ticket` | `TicketService`, `TicketRepository`, `TicketStatus`, `Ticket` (contract DTO), `NewTicket`, `TicketLinkTarget` |
+| `ticket` | `TicketService`, `TicketGovernor`, `TicketRepository`, `TicketStatus`, `Ticket` (contract DTO), `NewTicket`, `TicketLinkTarget` |
 | `list` | `TaskListService`, `TaskOp`, `TaskListRepository`, `TaskItemRepository`, `TaskList` / `TaskItem` / `TaskListView` (contract DTOs) |
 | `prompt` | `TaskPromptRenderer` (byte-stable prompt text of current and archived lists) |
 | `web` | `TaskController` (REST), `TaskSnapshotContributor` (`/api/bootstrap`) |
