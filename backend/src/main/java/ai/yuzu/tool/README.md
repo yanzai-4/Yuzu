@@ -9,4 +9,5 @@
 | `impl.question` | `ask_user` (question cards, non-blocking) |
 | `impl.memory` | `memory_read`, the memory-read module (time phrases resolved by code first, then by AI) |
 | `impl.task` | `ticket_create`, `ticket_assign`, `task_approve`; room-member lookup and code-made notices |
-| `impl.*` (next) | learning, web, e-mail, trading, code, files |
+| `impl.web` | `web_browse` (untrusted: search and pages go through the outbound safety review) |
+| `impl.*` (next) | learning, e-mail, trading, code, files |

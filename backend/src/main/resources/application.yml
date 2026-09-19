@@ -45,6 +45,14 @@ yuzu:
   workspace-root: ../workspaces
   # Directory of the master key that encrypts stored API keys (outside the repository; gitignored).
   secret-dir: ../data/secret
+  # Web browsing: LIVE uses DuckDuckGo + real pages, CORPUS uses the deterministic offline demo pages.
+  web:
+    mode: LIVE
+    timeout: 20s
+    max-bytes: 2097152
+    max-redirects: 4
+    max-results: 6
+    max-page-chars: 8000
   # Origins allowed to call the API directly (the Vite dev server proxies, so this is rarely needed).
   cors-origins:
     - http://localhost:5173
