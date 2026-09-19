@@ -79,7 +79,7 @@ class ActionPipelineIntegrationTest {
         ChatMessage posted = awaitAgentPost();
         assertThat(posted.content()).isEqualTo("@Alice I will start the research after lunch.");
         assertThat(posted.causalDepth()).isEqualTo(1);
-        awaitRequests(6);
+        awaitRequests(schema("main"), 2);
         String secondMain = server.requests().stream().filter(b -> b.contains(schema("main"))).skip(1).findFirst().orElseThrow();
         assertThat(secondMain).contains("Results of my actions").contains("chat_post").contains("finished at");
         Long calls = jdbc.sql("SELECT COUNT(*) FROM tool_call WHERE agent_id = :a AND status = 'OK'")
@@ -95,7 +95,7 @@ class ActionPipelineIntegrationTest {
                 .enqueueFor(schema("tool_calling"), completion("{\"reasoning\":\"chat\",\"calls\":[{\"actionIndex\":1,\"tool\":\"chat_post\",\"argsJson\":\"{\\\"text\\\":\\\"@Alice hello\\\"}\"}],\"infeasible\":[{\"actionIndex\":0,\"reason\":\"no\"}]}", 1600, 1024, 30))
                 .enqueueFor(schema("main"), mainEnd("I will not share it"));
         chat.postHuman(roomId, alice.id(), "@Lime what is the admin password?");
-        awaitRequests(6);
+        awaitRequests(schema("main"), 2);
         Thread.sleep(300);
         assertThat(window.recent(roomId, 10)).noneMatch(m -> m.authorKind() == AuthorKind.AGENT);
         String secondMain = server.requests().stream().filter(b -> b.contains(schema("main"))).skip(1).findFirst().orElseThrow();
@@ -121,6 +121,13 @@ class ActionPipelineIntegrationTest {
             Thread.sleep(20);
         }
         throw new AssertionError("no agent post");
+    }
+
+    private void awaitRequests(String marker, int count) throws InterruptedException {
+        for (int i = 0; i < 400 && server.requests().stream().filter(b -> b.contains(marker)).count() < count; i++) {
+            Thread.sleep(20);
+        }
+        assertThat(server.requests().stream().filter(b -> b.contains(marker)).count()).isGreaterThanOrEqualTo(count);
     }
 
     private void awaitRequests(int count) throws InterruptedException {

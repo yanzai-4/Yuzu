@@ -32,3 +32,5 @@
 - Times are the absolute natural-language strings of the DTOs (never "5 minutes ago").
 - Every free text is flattened to one line, so stored text can never forge extra item lines.
 - Item numbers are the stable `ord` values; `TaskList.itemAt(ord)` maps a number back to its item id.
+- `TaskStateAdapter` — v0.0.21 🍊 implements `module.TaskStateProvider` (current list + last 3 archived) for every
+  module prompt, replacing the `NONE` fallback.

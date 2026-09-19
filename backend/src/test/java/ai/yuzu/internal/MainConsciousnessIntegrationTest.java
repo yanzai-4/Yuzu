@@ -125,11 +125,16 @@ class MainConsciousnessIntegrationTest {
             server.enqueue(200, main("still thinking " + i, "THINK", List.of(), "\"more\""));
         }
         chat.postHuman(roomId, alice.id(), "@Lime ponder the meaning of citrus");
-        for (int i = 0; i < 400 && server.requests().size() < 10; i++) {
+        for (int i = 0; i < 400 && withoutPlanning() < 10; i++) {
             Thread.sleep(20);
         }
         Thread.sleep(500);
-        assertThat(server.requests()).hasSize(2 + 8);
+        assertThat(withoutPlanning()).isEqualTo(2 + 8);
+    }
+
+    /** v0.0.21 🍊 Requests other than the planning module's (planning runs on every intake). */
+    private long withoutPlanning() {
+        return server.requests().stream().filter(b -> !b.contains(FakeLlmServer.schema("planning"))).count();
     }
 
     private void forwardAndGateSafe() {

@@ -26,6 +26,7 @@ public final class FakeLlmServer implements AutoCloseable {
     private final HttpServer server;
     private final Deque<Reply> replies = new ArrayDeque<>();
     private final List<Map.Entry<String, Reply>> routed = new ArrayList<>();
+    private final Map<String, Reply> defaults = new java.util.LinkedHashMap<>();
     private final List<String> requests = new ArrayList<>();
 
     /** v0.0.8 🍊 Starts on a random local port. */
@@ -44,6 +45,14 @@ public final class FakeLlmServer implements AutoCloseable {
                     }
                 }
                 if (reply == null) {
+                    for (Map.Entry<String, Reply> d : defaults.entrySet()) {
+                        if (body.contains(d.getKey())) {
+                            reply = d.getValue();
+                            break;
+                        }
+                    }
+                }
+                if (reply == null) {
                     reply = replies.isEmpty() ? new Reply(500, "{\"error\":{\"message\":\"no scripted reply\"}}",
                             "application/json", Map.of()) : replies.poll();
                 }
@@ -56,6 +65,7 @@ public final class FakeLlmServer implements AutoCloseable {
                 out.write(bytes);
             }
         });
+        defaultFor(schema("planning"), completion("{\"reasoning\":\"no change\",\"mode\":\"NONE\",\"goal\":null,\"items\":[],\"publisher\":null,\"ticketId\":null,\"ops\":[],\"requestApproval\":false}", 1200, 0, 10));
         server.start();
     }
 
@@ -73,6 +83,12 @@ public final class FakeLlmServer implements AutoCloseable {
     /** v0.0.18 🍊 Queues a reply used only for a request whose body contains the marker (e.g. a schema name). */
     public synchronized FakeLlmServer enqueueFor(String marker, String json) {
         routed.add(Map.entry(marker, new Reply(200, json, "application/json", Map.of())));
+        return this;
+    }
+
+    /** v0.0.21 🍊 Standing reply for requests containing a marker, used when nothing routed matches (never consumed). */
+    public synchronized FakeLlmServer defaultFor(String marker, String json) {
+        defaults.put(marker, new Reply(200, json, "application/json", Map.of()));
         return this;
     }
 
