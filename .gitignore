@@ -1,4 +1,4 @@
-# v0.0.0 🍊 Files that must never be uploaded to the repository
+# v0.0.5 🍊 Files that must never be uploaded to the repository
 
 # --- Reference / strategy documents (local only) ---
 HACKATHON_BRIEF.md
@@ -32,3 +32,4 @@ node_modules/
 .vscode/
 .DS_Store
 .claude/settings.local.json
+.claude/worktrees/
