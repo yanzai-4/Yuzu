@@ -5,7 +5,7 @@
 - `LlmGateway` — THE entry point for modules: tier → model and endpoint from the console settings,
   `PriorityGate` permit, structured call (validation + 3 retries) or free text (optional streaming),
   metering per agent/module/tier/model, attempt recording, 429 back-pressure, optional 10-minute local
-  response cache for pure-function calls (hits metered separately).
+  response cache for pure-function calls (hits metered separately); redacts credentials from every message.
 - `LlmCallContext` — agent, module, tier, trace id, cancel token; `promptCacheKey()` = `yuzu:{module}:{agent}`.
 - `PriorityGate` — global permits per class (MAIN_TOOL 8, CHAT 8, REVIEW 8, BACKGROUND 4, MONITOR 2);
   BACKGROUND halves for 30 s after a 429.

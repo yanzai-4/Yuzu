@@ -1,6 +1,6 @@
 # ai.yuzu.common
 
-> v0.0.1 🍊 Dependency-free building blocks shared by every feature package.
+> v0.0.16 🍊 Dependency-free building blocks shared by every feature package.
 
 | Sub-package | Responsibility |
 |---|---|
@@ -9,5 +9,6 @@
 | `error` | `ErrorCode`, the `YuzuException` hierarchy, `ApiError`, the REST exception handler |
 | `concurrent` | Guarded async execution, error sinks, cooperative cancellation |
 | `json` | JSON column helpers and canonical rendering |
+| `security` | Secret detection and redaction |
 
 Rule: nothing in `common` may depend on a feature package.

@@ -1,6 +1,7 @@
 package ai.yuzu.llm;
 
 import ai.yuzu.common.error.LlmTransportException;
+import ai.yuzu.common.security.SecretScanner;
 import ai.yuzu.llm.capability.CapabilityRegistry;
 import ai.yuzu.llm.prompt.Prompt;
 import ai.yuzu.llm.prompt.TokenEstimator;
@@ -31,12 +32,12 @@ import java.util.List;
 import java.util.function.Function;
 
 /**
- * v0.0.11 🍊 The single entry point for every model call made by any module.
+ * v0.0.16 🍊 The single entry point for every model call made by any module.
  *
  * <p>Resolves tier → model and the provider endpoint from the console settings, takes a
  * {@link PriorityGate} permit, runs the call (structured with validation + retries, or free text with
  * optional streaming), meters tokens/cache hits per agent/module/tier/model, records every HTTP attempt,
- * and throttles background work after 429s. Pure-function calls (same full prompt → same answer, e.g.
+ * throttles background work after 429s, and redacts credentials from every outgoing message. Pure-function calls (same full prompt → same answer, e.g.
  * safety verdicts) can opt into a 10-minute local response cache; hits are metered separately.</p>
  */
 @Component
@@ -92,8 +93,9 @@ public class LlmGateway {
         meter.recordCall(key);
         LlmCall base = new LlmCall(endpoint, tier, List.of(), null, null, ctx.promptCacheKey(), false, null,
                 null);
+        Function<OutputStrategy, Prompt> redacted = strategy -> redact(promptFor.apply(strategy));
         try (PriorityGate.Permit ignored = gate.acquire(ctx.module())) {
-            StructuredResult<T> result = structured.call(base, type, ctx.module().toLowerCase(), promptFor, check,
+            StructuredResult<T> result = structured.call(base, type, ctx.module().toLowerCase(), redacted, check,
                     ctx.cancel(), observer(ctx, key, true));
             for (int i = 1; i < result.attempts(); i++) {
                 meter.recordRetry(key);
@@ -110,11 +112,18 @@ public class LlmGateway {
         TierSettings tier = settings.current().tier(ctx.tier());
         TokenMeter.Key key = new TokenMeter.Key(ctx.agentId().value(), ctx.module(), ctx.tier().name(), tier.model());
         meter.recordCall(key);
-        LlmCall call = new LlmCall(endpoint(), tier, prompt.messages(), null, null, ctx.promptCacheKey(),
+        LlmCall call = new LlmCall(endpoint(), tier, redact(prompt).messages(), null, null, ctx.promptCacheKey(),
                 sink != null, null, null);
         try (PriorityGate.Permit ignored = gate.acquire(ctx.module())) {
             return executor.execute(call, OutputStrategy.PROMPT_ONLY, sink, ctx.cancel(), observer(ctx, key, false));
         }
+    }
+
+    /** v0.0.16 🍊 Redacts credentials from every message so no secret ever reaches a model provider. */
+    static Prompt redact(Prompt prompt) {
+        List<LlmMessage> clean = prompt.messages().stream()
+                .map(m -> new LlmMessage(m.role(), SecretScanner.redact(m.content()))).toList();
+        return clean.equals(prompt.messages()) ? prompt : new Prompt(clean);
     }
 
     /** v0.0.11 🍊 Current provider endpoint with the decrypted key (NOT_CONFIGURED when no key is saved). */

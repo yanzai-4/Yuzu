@@ -1,9 +1,10 @@
 # ai.yuzu.external
 
-> v0.0.15 🍊 The agent's external modules (all AI): chat triage, safety review, behavior review, tool calling.
+> v0.0.16 🍊 The agent's external modules (all AI): chat triage, safety review, behavior review, tool calling.
 
 | Sub-package | Responsibility |
 |---|---|
-| `chat` | Group-chat triage: prefilter, per-agent inbox, loop guard, chat module (IGNORE / REPLY / FORWARD) |
+| `chat` | Group-chat triage: prefilter, per-agent inbox, loop guard, chat module (IGNORE / REPLY / FORWARD), security notices |
+| `safety` | Inbound gate and outbound masking, secret blocking, security incidents |
 
-Safety, behavior and tool-calling sub-packages are added in the next steps.
+Behavior review and tool calling are added in the next steps.
