@@ -39,7 +39,7 @@ export function TopBar({ compact }: { compact: boolean }) {
         aria-label="Coworkers"
         title="Coworkers: list and hire agents"
         onClick={() => openDialog({ kind: 'coworkers', view: 'roster' })}
-        className={compact ? 'w-9 px-0' : undefined}
+        square={compact}
       >
         {compact ? null : 'Coworkers'}
       </Button>
@@ -48,7 +48,7 @@ export function TopBar({ compact }: { compact: boolean }) {
         aria-label="Console"
         title="Console: model settings"
         onClick={() => openDialog({ kind: 'console' })}
-        className={compact ? 'w-9 px-0' : undefined}
+        square={compact}
       >
         {compact ? null : 'Console'}
       </Button>

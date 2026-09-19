@@ -22,6 +22,7 @@ export class Simulator {
   private readonly reactions: Reactions;
   private readonly step = new Map<string, number>();
   private readonly errorUntil = new Map<string, number>();
+  private readonly chatterIndex = new Map<string, number>();
   private running = false;
 
   /** v0.0.4 🍊 Binds the simulator to the world. */
@@ -36,7 +37,7 @@ export class Simulator {
     this.running = true;
     this.every(1700, () => this.tickAgents());
     this.every(2000, () => this.world.server.publish('usage.tick', this.world.server.state.meter.snapshot()));
-    this.every(8000, () => this.progressTasks());
+    this.every(12_000, () => this.progressTasks());
     this.every(24_000, () => void this.chatter());
     const timeline: [number, ScenarioName][] = [
       [3500, 'finding'],
@@ -149,7 +150,12 @@ export class Simulator {
     const agents = this.world.activeAgents().filter((a) => !this.world.busy.has(a.agentId));
     if (agents.length === 0 || Math.random() < 0.35) return;
     const agent = pick(agents);
-    await this.world.streamMessage(agent.agentId, pick(CHATTER[agent.role]));
+    // Walk each agent's lines in order so nobody repeats the same sentence back to back.
+    const lines = CHATTER[agent.role];
+    const index = this.chatterIndex.get(agent.agentId) ?? randInt(0, lines.length - 1);
+    this.chatterIndex.set(agent.agentId, index + 1);
+    const line = lines[index % lines.length];
+    if (line) await this.world.streamMessage(agent.agentId, line);
   }
 
   private every(ms: number, fn: () => void): void {

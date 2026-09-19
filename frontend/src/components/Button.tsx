@@ -20,12 +20,21 @@ const SIZES: Record<Size, string> = {
   md: 'h-9 px-3.5 text-sm gap-2 rounded-lg',
 };
 
+/** Icon-only buttons are square and have no horizontal padding (never mixed with SIZES). */
+const SQUARE: Record<Size, string> = {
+  xs: 'size-6 rounded-md',
+  sm: 'size-8 rounded-lg',
+  md: 'size-9 rounded-lg',
+};
+
 /** v0.0.4 🍊 Props of the shared button. */
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: Variant;
   size?: Size;
   icon?: IconName;
   loading?: boolean;
+  /** Icon-only square button (pass an aria-label). */
+  square?: boolean;
   children?: ReactNode;
 }
 
@@ -35,12 +44,14 @@ export function Button({
   size = 'md',
   icon,
   loading = false,
+  square = false,
   disabled,
   className,
   children,
   type = 'button',
   ...rest
 }: ButtonProps) {
+  const iconSize = size === 'md' ? 16 : 14;
   return (
     <button
       type={type}
@@ -49,12 +60,16 @@ export function Button({
         'inline-flex shrink-0 items-center justify-center font-medium whitespace-nowrap transition-colors',
         'disabled:cursor-not-allowed disabled:opacity-50',
         VARIANTS[variant],
-        SIZES[size],
+        square ? SQUARE[size] : SIZES[size],
         className,
       )}
       {...rest}
     >
-      {loading ? <Spinner size={size === 'md' ? 16 : 13} /> : icon ? <Icon name={icon} size={size === 'md' ? 16 : 14} /> : null}
+      {loading ? (
+        <Spinner size={size === 'md' ? 16 : 13} />
+      ) : icon ? (
+        <Icon name={icon} size={iconSize} className="shrink-0" />
+      ) : null}
       {children}
     </button>
   );
@@ -66,18 +81,7 @@ export function IconButton({
   label,
   size = 'sm',
   variant = 'ghost',
-  className,
   ...rest
-}: Omit<ButtonProps, 'children' | 'icon'> & { icon: IconName; label: string }) {
-  return (
-    <Button
-      aria-label={label}
-      title={label}
-      icon={icon}
-      size={size}
-      variant={variant}
-      className={clsx(size === 'xs' ? 'w-6 px-0' : size === 'sm' ? 'w-8 px-0' : 'w-9 px-0', className)}
-      {...rest}
-    />
-  );
+}: Omit<ButtonProps, 'children' | 'icon' | 'square'> & { icon: IconName; label: string }) {
+  return <Button aria-label={label} title={label} icon={icon} size={size} variant={variant} square {...rest} />;
 }

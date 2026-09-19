@@ -20,23 +20,23 @@ export function reportError(error: ApiError, source: ErrorEntry['source'], conte
   toastError(error);
 }
 
+const TITLES: Partial<Record<ApiError['code'], string>> = {
+  BAD_REQUEST: 'Invalid request',
+  NOT_FOUND: 'Not found',
+  CONFLICT: 'Conflict',
+  AGENT_LIMIT: 'The office is full',
+  PERMISSION_DENIED: 'Permission denied',
+  SANDBOX_VIOLATION: 'Sandbox violation',
+  SECURITY_BLOCKED: 'Blocked by safety review',
+  APPROVAL_REQUIRED: 'Approval required',
+  NOT_CONFIGURED: 'Not configured yet',
+  LLM_AUTH: 'API key rejected',
+  LLM_TRANSPORT: 'Model provider unreachable',
+  LLM_OUTPUT_INVALID: 'Model output invalid',
+  TOOL_EXECUTION: 'A tool failed',
+  CANCELLED: 'Cancelled',
+};
+
 function humanTitle(error: ApiError): string {
-  switch (error.code) {
-    case 'AGENT_LIMIT':
-      return 'The office is full';
-    case 'NOT_CONFIGURED':
-      return 'Not configured yet';
-    case 'LLM_AUTH':
-      return 'API key rejected';
-    case 'LLM_TRANSPORT':
-      return 'Model provider unreachable';
-    case 'PERMISSION_DENIED':
-      return 'Permission denied';
-    case 'SECURITY_BLOCKED':
-      return 'Blocked by safety review';
-    case 'APPROVAL_REQUIRED':
-      return 'Approval required';
-    default:
-      return 'Something went wrong';
-  }
+  return TITLES[error.code] ?? 'Something went wrong';
 }

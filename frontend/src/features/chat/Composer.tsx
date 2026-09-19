@@ -116,7 +116,7 @@ export function Composer() {
           onChange={onChange}
           onKeyDown={onKeyDown}
           onSelect={(e) => setCaret(e.currentTarget.selectionStart)}
-          placeholder="Message the team — type @ to mention a coworker"
+          placeholder="Message the team (@ to mention)"
           aria-label="Message"
           role="combobox"
           aria-expanded={menuOpen}

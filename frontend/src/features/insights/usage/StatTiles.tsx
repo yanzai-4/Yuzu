@@ -51,14 +51,15 @@ export function StatTiles({ usage }: { usage: UsageSnapshot }) {
   const t = usage.totals;
   const localRate = usage.localCacheLookups > 0 ? usage.localCacheHits / usage.localCacheLookups : null;
   return (
-    <div className="grid grid-cols-3 gap-2">
+    <div className="@container">
+    <div className="grid grid-cols-2 gap-2 @sm:grid-cols-3">
       <Tile label="Calls" value={formatCompact(t.calls)} exact={formatInt(t.calls)} sub={`${formatInt(t.attempts)} attempts`} />
       <Tile label="Prompt tokens" value={formatCompact(t.promptTokens)} exact={formatInt(t.promptTokens)} />
       <Tile label="Cached tokens" value={formatCompact(t.cachedTokens)} exact={formatInt(t.cachedTokens)} sub="served from cache" />
       <Tile label="Cache hit rate" value={formatPercent(t.hitRate)} meter={t.hitRate} sub={t.hitRate == null ? 'not reported' : 'cached ÷ prompt'} />
       <Tile label="Completion tokens" value={formatCompact(t.completionTokens)} exact={formatInt(t.completionTokens)} />
       <Tile label="Reasoning tokens" value={formatCompact(t.reasoningTokens)} exact={formatInt(t.reasoningTokens)} />
-      <Tile label="Retries" value={formatInt(t.retries)} sub="format retries" />
+      <Tile label="Retries" value={formatInt(t.retries)} sub="LLM call retries" />
       <Tile label="Errors" value={formatInt(t.errors)} alert={t.errors > 0} sub={t.errors > 0 ? 'see the Trace tab' : 'all good'} />
       <Tile
         label="Local cache hit rate"
@@ -66,6 +67,7 @@ export function StatTiles({ usage }: { usage: UsageSnapshot }) {
         meter={localRate}
         sub={`${formatInt(usage.localCacheHits)} of ${formatInt(usage.localCacheLookups)} lookups`}
       />
+    </div>
     </div>
   );
 }

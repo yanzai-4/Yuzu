@@ -47,7 +47,7 @@ export function TierTable({
               <select value={row.reasoningEffort} onChange={(e) => onChange(tier, { reasoningEffort: e.target.value })} className={inputClass}>
                 {EFFORTS.map((effort) => (
                   <option key={effort} value={effort}>
-                    {effort || '(provider default)'}
+                    {effort || '(default)'}
                   </option>
                 ))}
               </select>

@@ -28,9 +28,16 @@ export function ApiKeySection() {
           API key
         </label>
         {settings?.hasKey ? (
-          <Badge tone="leaf">
-            <Icon name="key" size={10} /> Stored {settings.apiKeyMasked ? `· ${settings.apiKeyMasked}` : ''}
-          </Badge>
+          <>
+            <Badge tone="leaf">
+              <Icon name="key" size={10} /> Stored
+            </Badge>
+            {settings.apiKeyMasked ? (
+              <code className="rounded bg-surface-3 px-1.5 py-px font-mono text-[11px] text-ink-2" title="Masked API key">
+                {settings.apiKeyMasked}
+              </code>
+            ) : null}
+          </>
         ) : (
           <Badge tone="warn">Not set</Badge>
         )}
