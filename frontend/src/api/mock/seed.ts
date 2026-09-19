@@ -217,6 +217,7 @@ export function createSeedState(): MockState {
       },
     },
     events: [],
+    llmCalls: [],
     workingMemory: new Map(agents.map((a) => [a.agentId, demoWorkingMemory(a.agentId, a.name)])),
   };
 }

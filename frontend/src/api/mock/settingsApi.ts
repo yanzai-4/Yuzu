@@ -20,6 +20,8 @@ type SettingsApi = Pick<
   | 'listModels'
   | 'getUsage'
   | 'getTrace'
+  | 'listTraceLlmCalls'
+  | 'getLlmCallPayload'
   | 'listEmails'
   | 'listTrades'
   | 'listPortfolios'
@@ -99,6 +101,20 @@ export function createSettingsApi(ctx: MockContext): SettingsApi {
       const events = state.events.filter((e) => e.traceId === traceId);
       if (events.length === 0) throw ctx.fail('GET', `/api/traces/${traceId}`, 'NOT_FOUND', 'No events recorded for this trace.');
       return clone(events);
+    },
+
+    async listTraceLlmCalls(traceId) {
+      await ctx.latency();
+      return clone(state.llmCalls.filter((c) => c.call.traceId === traceId).map((c) => c.call));
+    },
+
+    async getLlmCallPayload(callId) {
+      await ctx.latency();
+      const recorded = state.llmCalls.find((c) => c.call.id === callId);
+      if (!recorded) {
+        throw ctx.fail('GET', `/api/llm-calls/${callId}/payload`, 'NOT_FOUND', 'The raw payload of this call is no longer on disk.', { callId });
+      }
+      return clone(recorded.payload);
     },
 
     async listEmails() {

@@ -1,4 +1,4 @@
-import { request } from './http';
+import { request, requestWithHeaders } from './http';
 import { eventSourceTransport, type StreamTransport } from './transport';
 import type {
   Agent,
@@ -7,11 +7,15 @@ import type {
   ChatMessage,
   CreateAgentRequest,
   Email,
+  LlmCall,
+  LlmCallPayload,
   LlmSettingsView,
   LlmTestResult,
   ModuleEvent,
+  ModuleEventPage,
   Portfolio,
   RolePreset,
+  RoomControlResult,
   Snapshot,
   TaskListView,
   Ticket,
@@ -46,9 +50,13 @@ export interface YuzuApi {
   pauseAgent(agentId: string): Promise<AgentStatus>;
   resumeAgent(agentId: string): Promise<AgentStatus>;
   interruptAgent(agentId: string): Promise<AgentStatus>;
+  stopAllAgents(roomId: string): Promise<RoomControlResult>;
+  resumeAllAgents(roomId: string): Promise<RoomControlResult>;
   getWorkingMemory(agentId: string): Promise<WorkingMemoryView>;
   getAgentTasks(agentId: string): Promise<TaskListView>;
   listAgentEvents(agentId: string, beforeSeq?: number, limit?: number): Promise<ModuleEvent[]>;
+  /** One page of history; `cursor` comes from the previous page (`X-Next-Cursor`). */
+  listAgentEventPage(agentId: string, cursor?: string | null, limit?: number): Promise<ModuleEventPage>;
   listTickets(roomId: string): Promise<Ticket[]>;
   approveTaskList(listId: string, userId: string): Promise<TaskListView>;
   getLlmSettings(): Promise<LlmSettingsView>;
@@ -58,6 +66,8 @@ export interface YuzuApi {
   listModels(): Promise<string[]>;
   getUsage(): Promise<UsageSnapshot>;
   getTrace(traceId: string): Promise<ModuleEvent[]>;
+  listTraceLlmCalls(traceId: string): Promise<LlmCall[]>;
+  getLlmCallPayload(callId: string): Promise<LlmCallPayload>;
   listEmails(): Promise<Email[]>;
   listTrades(): Promise<Trade[]>;
   listPortfolios(): Promise<Portfolio[]>;
@@ -89,10 +99,18 @@ export const httpApi: YuzuApi = {
   pauseAgent: (agentId) => request(`/api/agents/${enc(agentId)}/pause`, { method: 'POST' }),
   resumeAgent: (agentId) => request(`/api/agents/${enc(agentId)}/resume`, { method: 'POST' }),
   interruptAgent: (agentId) => request(`/api/agents/${enc(agentId)}/interrupt`, { method: 'POST' }),
+  stopAllAgents: (roomId) => request(`/api/rooms/${enc(roomId)}/stop-all`, { method: 'POST' }),
+  resumeAllAgents: (roomId) => request(`/api/rooms/${enc(roomId)}/resume-all`, { method: 'POST' }),
   getWorkingMemory: (agentId) => request(`/api/agents/${enc(agentId)}/working-memory`),
   getAgentTasks: (agentId) => request(`/api/agents/${enc(agentId)}/tasks`),
   listAgentEvents: (agentId, beforeSeq, limit = 100) =>
     request(`/api/agents/${enc(agentId)}/events`, { query: { beforeSeq, limit } }),
+  async listAgentEventPage(agentId, cursor, limit = 100) {
+    const { body, headers } = await requestWithHeaders<ModuleEvent[]>(`/api/agents/${enc(agentId)}/events`, {
+      query: { cursor, limit },
+    });
+    return { events: body, nextCursor: headers.get('X-Next-Cursor') };
+  },
   listTickets: (roomId) => request(`/api/rooms/${enc(roomId)}/tickets`),
   approveTaskList: (listId, userId) =>
     request(`/api/task-lists/${enc(listId)}/approve`, { method: 'POST', body: { userId } }),
@@ -103,6 +121,8 @@ export const httpApi: YuzuApi = {
   listModels: () => request('/api/settings/llm/models'),
   getUsage: () => request('/api/usage'),
   getTrace: (traceId) => request(`/api/traces/${enc(traceId)}`),
+  listTraceLlmCalls: (traceId) => request(`/api/traces/${enc(traceId)}/llm-calls`),
+  getLlmCallPayload: (callId) => request(`/api/llm-calls/${enc(callId)}/payload`),
   listEmails: () => request('/api/sim/emails'),
   listTrades: () => request('/api/sim/trades'),
   listPortfolios: () => request('/api/sim/portfolios'),
@@ -157,6 +177,10 @@ export const pauseAgent = (agentId: string) => api().pauseAgent(agentId);
 export const resumeAgent = (agentId: string) => api().resumeAgent(agentId);
 /** v0.0.4 🍊 POST /api/agents/{agentId}/interrupt. */
 export const interruptAgent = (agentId: string) => api().interruptAgent(agentId);
+/** v0.0.30 🍊 POST /api/rooms/{roomId}/stop-all — pause and interrupt every coworker of the room. */
+export const stopAllAgents = (roomId: string) => api().stopAllAgents(roomId);
+/** v0.0.30 🍊 POST /api/rooms/{roomId}/resume-all — let every paused coworker go back to work. */
+export const resumeAllAgents = (roomId: string) => api().resumeAllAgents(roomId);
 /** v0.0.4 🍊 GET /api/agents/{agentId}/working-memory. */
 export const getWorkingMemory = (agentId: string) => api().getWorkingMemory(agentId);
 /** v0.0.4 🍊 GET /api/agents/{agentId}/tasks. */
@@ -164,6 +188,9 @@ export const getAgentTasks = (agentId: string) => api().getAgentTasks(agentId);
 /** v0.0.4 🍊 GET /api/agents/{agentId}/events — recent trace events of one agent. */
 export const listAgentEvents = (agentId: string, beforeSeq?: number, limit?: number) =>
   api().listAgentEvents(agentId, beforeSeq, limit);
+/** v0.0.30 🍊 GET /api/agents/{agentId}/events — one page plus the cursor of the next (older) one. */
+export const listAgentEventPage = (agentId: string, cursor?: string | null, limit?: number) =>
+  api().listAgentEventPage(agentId, cursor, limit);
 /** v0.0.4 🍊 GET /api/rooms/{roomId}/tickets. */
 export const listTickets = (roomId: string) => api().listTickets(roomId);
 /** v0.0.4 🍊 POST /api/task-lists/{listId}/approve — approve and archive a finished list. */
@@ -182,6 +209,10 @@ export const listModels = () => api().listModels();
 export const getUsage = () => api().getUsage();
 /** v0.0.4 🍊 GET /api/traces/{traceId} — every event of one trace. */
 export const getTrace = (traceId: string) => api().getTrace(traceId);
+/** v0.0.30 🍊 GET /api/traces/{traceId}/llm-calls — the model calls of one trace, oldest first. */
+export const listTraceLlmCalls = (traceId: string) => api().listTraceLlmCalls(traceId);
+/** v0.0.30 🍊 GET /api/llm-calls/{callId}/payload — the exact request and response JSON. */
+export const getLlmCallPayload = (callId: string) => api().getLlmCallPayload(callId);
 /** v0.0.4 🍊 GET /api/sim/emails. */
 export const listEmails = () => api().listEmails();
 /** v0.0.4 🍊 GET /api/sim/trades. */
