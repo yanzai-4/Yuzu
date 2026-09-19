@@ -55,6 +55,11 @@ public abstract class AiModule<I, O> {
         return List.of();
     }
 
+    /** v0.0.18 🍊 Extra static text appended to the module instructions in S1 (for example a tool catalog). */
+    protected String staticInstructions() {
+        return "";
+    }
+
     /** v0.0.14 🍊 Fallback value when the model keeps failing (empty = rethrow). */
     protected Optional<O> degrade(AgentContext ctx, I input, YuzuException error) {
         return Optional.empty();
@@ -99,10 +104,12 @@ public abstract class AiModule<I, O> {
         }
     }
 
-    /** v0.0.14 🍊 Module template plus schema instructions when the schema is not enforced by the provider. */
+    /** v0.0.18 🍊 Module template (+ static extras) plus schema instructions when the provider cannot enforce the schema. */
     private String instructions(OutputStrategy strategy) {
         String schema = SchemaInstructions.forStrategy(strategy, deps.schemas().schemaText(spec().outputType()));
         String template = deps.prompts().get("modules/" + spec().template());
-        return schema.isEmpty() ? template : template + "\n\n" + schema;
+        String extra = staticInstructions();
+        String base = extra == null || extra.isBlank() ? template : template + "\n\n" + extra.strip();
+        return schema.isEmpty() ? base : base + "\n\n" + schema;
     }
 }

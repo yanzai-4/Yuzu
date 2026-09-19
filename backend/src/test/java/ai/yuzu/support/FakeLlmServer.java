@@ -25,6 +25,7 @@ public final class FakeLlmServer implements AutoCloseable {
 
     private final HttpServer server;
     private final Deque<Reply> replies = new ArrayDeque<>();
+    private final List<Map.Entry<String, Reply>> routed = new ArrayList<>();
     private final List<String> requests = new ArrayList<>();
 
     /** v0.0.8 🍊 Starts on a random local port. */
@@ -35,8 +36,17 @@ public final class FakeLlmServer implements AutoCloseable {
             Reply reply;
             synchronized (this) {
                 requests.add(body);
-                reply = replies.isEmpty() ? new Reply(500, "{\"error\":{\"message\":\"no scripted reply\"}}",
-                        "application/json", Map.of()) : replies.poll();
+                reply = null;
+                for (int i = 0; i < routed.size(); i++) {
+                    if (body.contains(routed.get(i).getKey())) {
+                        reply = routed.remove(i).getValue();
+                        break;
+                    }
+                }
+                if (reply == null) {
+                    reply = replies.isEmpty() ? new Reply(500, "{\"error\":{\"message\":\"no scripted reply\"}}",
+                            "application/json", Map.of()) : replies.poll();
+                }
             }
             byte[] bytes = reply.body().getBytes(StandardCharsets.UTF_8);
             exchange.getResponseHeaders().add("Content-Type", reply.contentType());
@@ -58,6 +68,17 @@ public final class FakeLlmServer implements AutoCloseable {
     public synchronized FakeLlmServer enqueue(int status, String json) {
         replies.add(new Reply(status, json, "application/json", Map.of()));
         return this;
+    }
+
+    /** v0.0.18 🍊 Queues a reply used only for a request whose body contains the marker (e.g. a schema name). */
+    public synchronized FakeLlmServer enqueueFor(String marker, String json) {
+        routed.add(Map.entry(marker, new Reply(200, json, "application/json", Map.of())));
+        return this;
+    }
+
+    /** v0.0.18 🍊 Marker matching the strict schema name of a module ("behavior", "tool_calling", ...). */
+    public static String schema(String name) {
+        return "\"name\":\"" + name + "\"";
     }
 
     /** v0.0.8 🍊 Queues a reply with headers. */
