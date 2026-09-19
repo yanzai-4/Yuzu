@@ -6,7 +6,7 @@
 - `YuzuException` — base of every expected failure; fluent `with(key, value)` details and
   `forAgent(id)`. Subclasses: `NotFound`, `Conflict`, `BadRequest`, `AgentLimit`, `PermissionDenied`,
   `SandboxViolation`, `SecurityBlocked`, `NotConfigured`, `LlmAuth`, `LlmOutputInvalid`,
-  `ToolExecution`, `Cancelled`.
+  `ToolExecution`, `Cancelled`, `BudgetExhausted`.
 - `ApiError` — JSON body `{code, message, details, agentId, time}`.
 - `GlobalExceptionHandler` — maps exceptions thrown by controllers to `ApiError` responses.
 

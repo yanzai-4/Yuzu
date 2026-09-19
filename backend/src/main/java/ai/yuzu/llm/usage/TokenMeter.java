@@ -32,6 +32,7 @@ public class TokenMeter {
     }
 
     private final Map<Key, Cell> cells = new ConcurrentHashMap<>();
+    private final LongAdder billable = new LongAdder();
     private final LongAdder localHits = new LongAdder();
     private final LongAdder localLookups = new LongAdder();
     private final LongAdder version = new LongAdder();
@@ -53,10 +54,11 @@ public class TokenMeter {
         version.increment();
     }
 
-    /** v0.0.11 🍊 Counts one HTTP attempt with its usage (usage may be {@link Usage#NONE} on failure). */
+    /** v0.0.31 🍊 Counts one HTTP attempt with its usage (usage may be {@link Usage#NONE} on failure). */
     public void recordAttempt(Key key, Usage usage, long latencyMs, boolean error) {
         Cell c = cell(key);
         c.attempts.increment();
+        billable.add((long) usage.promptTokens() + usage.completionTokens());
         c.prompt.add(usage.promptTokens());
         c.cached.add(usage.cachedTokens());
         c.cacheWrite.add(usage.cacheWriteTokens());
@@ -85,6 +87,11 @@ public class TokenMeter {
             localHits.increment();
         }
         version.increment();
+    }
+
+    /** v0.0.31 🍊 Billable tokens (prompt + completion) across every agent, module, tier and model. */
+    public long billableTokens() {
+        return billable.sum();
     }
 
     /** v0.0.11 🍊 Aggregated snapshot (contract type {@code UsageSnapshot}). */

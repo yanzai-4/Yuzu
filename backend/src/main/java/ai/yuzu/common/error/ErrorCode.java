@@ -20,6 +20,7 @@ public enum ErrorCode {
     LLM_AUTH(HttpStatus.BAD_GATEWAY, "The model provider rejected the API key."),
     LLM_TRANSPORT(HttpStatus.BAD_GATEWAY, "The model provider could not be reached."),
     LLM_OUTPUT_INVALID(HttpStatus.BAD_GATEWAY, "The model kept returning output in the wrong format."),
+    BUDGET_EXHAUSTED(HttpStatus.TOO_MANY_REQUESTS, "The model budget is used up; calls are paused."),
     TOOL_EXECUTION(HttpStatus.INTERNAL_SERVER_ERROR, "A tool failed while executing."),
     CANCELLED(HttpStatus.CONFLICT, "The operation was cancelled."),
     INTERNAL(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected internal error occurred.");
