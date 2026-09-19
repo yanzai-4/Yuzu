@@ -12,4 +12,6 @@
 | `impl.file` | `file_write`, `file_read` (chunks and line ranges), `file_list`; the workspace sandbox |
 | `impl.mail` | `email_read`, `email_send` (always through an approval card) + `EmailApprovalHandler` |
 | `impl.trade` | `market_quote`, `portfolio_read`, `trade_execute` (approval card above the threshold) + `TradeApprovalHandler` |
-| `impl.*` (next) | learning, web, code |
+| `impl.web` | `web_browse` (untrusted: search and pages go through the outbound safety review) |
+| `impl.code` | `code_write` (trusted: writes into `code/`, runs offline in `sandbox-exec`) |
+| `impl.*` (next) | learning |
