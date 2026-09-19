@@ -11,7 +11,8 @@ memory, behavior review, tool calling) but has its own role, permissions, worksp
 - **Right pane** — tickets and task lists, token usage and cache-hit rate, simulated emails/trades,
   and a full trace of every module event.
 
-See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the design.
+See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the design, [`docs/API.md`](docs/API.md) for the
+REST/SSE contract, and [`docs/DEMO.md`](docs/DEMO.md) for a ten-minute walkthrough.
 
 ## Stack
 
@@ -30,7 +31,10 @@ Prerequisites: JDK 21, Maven 3.9+, Node 20+, MySQL 9.x binaries (`mysqld`, `mysq
 ```bash
 ./scripts/db.sh init-db   # first run: private MySQL instance on 127.0.0.1:3307 (data in data/mysql)
 ./scripts/dev.sh          # starts MySQL, the backend (:8080) and the frontend (:5173)
+curl -X POST "http://localhost:8080/api/demo/seed?roomId=room-0001"   # hire the four demo coworkers
 ```
+
+The frontend must stay on port 5173 — it is the only origin the backend's CORS policy accepts.
 
 The project runs its own MySQL instance (`scripts/db.sh start|stop|status|shell`) so it never touches a
 system MySQL installation. Backend tests use the `yuzu_test` database on the same instance.
