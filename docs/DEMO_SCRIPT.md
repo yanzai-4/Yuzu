@@ -12,6 +12,7 @@
 | `npm --prefix frontend run dev:mock` | mock 模式，后端在浏览器里模拟，不需要 MySQL / Spring Boot |
 | 打开 http://localhost:5173 | 顶栏会有黄色 `MOCK` 徽标 |
 | **窗口宽度 ≥ 1100px** | 小于 1100px 立刻退化成移动端单栏（底部 Chat / Office / Insights 标签栏），三栏就没了 |
+| 六幕都可以用顶栏下的 Tour chip 一键切 | 点 chip 或按 `1`–`6` 直接跳到该幕该看的视图，`Esc` 退出。只切视图，不改数据，可以反复点 |
 | **停在登录页，先别点 Join** | ⚠️ 见下面时间线 |
 
 ### ⚠️ 自动时间线（点 Join 就开始倒计时，只播一次）

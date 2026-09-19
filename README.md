@@ -10,6 +10,10 @@ memory, behavior review, tool calling) but has its own role, permissions, worksp
   active module and a short summary of what it is doing.
 - **Right pane** — tickets and task lists, token usage and cache-hit rate, simulated emails/trades,
   and a full trace of every module event.
+- **Guided tour** — six numbered chips under the top bar jump the workspace to the state that shows
+  off one pillar of the design (triage, model tiering, subconscious, safety, memory, business).
+  Keys `1`–`6` select a step, `Esc` leaves. The tour only changes what is on screen: it never posts a
+  message or touches the simulated world.
 
 See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the design, [`docs/API.md`](docs/API.md) for the
 REST/SSE contract, and [`docs/DEMO.md`](docs/DEMO.md) for a ten-minute walkthrough.
