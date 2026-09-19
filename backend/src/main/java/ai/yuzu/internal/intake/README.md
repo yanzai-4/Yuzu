@@ -9,3 +9,6 @@
 - `ChatDeliveryTracker` — per-agent component: each forward carries only chat the mind has not seen yet
   plus the new messages, so the same window is not copied into working memory repeatedly.
 - `Stimulus` — sealed: chat, tool results, question answer, notice.
+- `QuestionAnswerHandler` — v0.0.19 🍊 the `QUESTION` card handler. Free-text answers pass the inbound
+  safety gate (a blocked answer becomes a yellow notice), then the answer is delivered as a
+  `QuestionAnswerStimulus` with the attribution "Alice (human) answered my question card at …".
