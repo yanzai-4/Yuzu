@@ -1,6 +1,8 @@
 package ai.yuzu.llm;
 
 import ai.yuzu.common.error.CancelledException;
+import ai.yuzu.llm.usage.TokenBudget;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.EnumMap;
@@ -10,10 +12,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * v0.0.11 🍊 Global concurrency limits for model calls, per priority class, so 8 agents cannot flood the API.
+ * v0.0.31 🍊 Global concurrency and budget gate for model calls, so 8 agents cannot flood the API.
  *
  * <p>MAIN_TOOL 8, CHAT 8, REVIEW 8, BACKGROUND 4, MONITOR 2 permits. After a 429 the BACKGROUND class is
- * halved for 30 seconds (background work yields to the main consciousness and chat).</p>
+ * halved for 30 seconds (background work yields to the main consciousness and chat). Before any permit is
+ * taken the {@link TokenBudget} is consulted: once the configured token or cost ceiling is reached every
+ * acquisition is refused with {@code BudgetExhaustedException}, which each module turns into its own
+ * graceful degradation.</p>
  */
 @Component
 public class PriorityGate {
@@ -47,16 +52,30 @@ public class PriorityGate {
 
     private final Map<GateClass, Semaphore> semaphores = new EnumMap<>(GateClass.class);
     private final AtomicBoolean throttled = new AtomicBoolean();
+    private final TokenBudget budget;
 
-    /** v0.0.11 🍊 Creates one fair semaphore per class. */
+    /** v0.0.31 🍊 Creates one fair semaphore per class, with no budget (unit tests and probes). */
     public PriorityGate() {
+        this(null);
+    }
+
+    /** v0.0.31 🍊 Creates one fair semaphore per class, guarded by the token/cost budget. */
+    @Autowired
+    public PriorityGate(TokenBudget budget) {
+        this.budget = budget;
         for (GateClass c : GateClass.values()) {
             semaphores.put(c, new Semaphore(c.permits(), true));
         }
     }
 
-    /** v0.0.11 🍊 Blocks (interruptibly) until the module's class has a free permit; returns a releaser. */
+    /**
+     * v0.0.31 🍊 Refuses the call when the budget is exhausted, otherwise blocks (interruptibly) until the
+     * module's class has a free permit; returns a releaser.
+     */
     public Permit acquire(String module) {
+        if (budget != null) {
+            budget.checkAvailable();
+        }
         GateClass gateClass = GateClass.of(module);
         Semaphore semaphore = semaphores.get(gateClass);
         try {

@@ -8,7 +8,8 @@
   response cache for pure-function calls (hits metered separately); redacts credentials from every message.
 - `LlmCallContext` — agent, module, tier, trace id, cancel token; `promptCacheKey()` = `yuzu:{module}:{agent}`.
 - `PriorityGate` — global permits per class (MAIN_TOOL 8, CHAT 8, REVIEW 8, BACKGROUND 4, MONITOR 2);
-  BACKGROUND halves for 30 s after a 429.
+  BACKGROUND halves for 30 s after a 429. Before any permit is taken it asks `usage.TokenBudget`, so an
+  exhausted token/cost budget refuses the call outright instead of queueing it.
 - `LlmCallRecorder` — batched `llm_call` rows per HTTP attempt + request/response JSON payload files in
   the agent workspace (`llm/<date>/<id>.json`; never contains the key).
 - `CapabilityProbe` + `LlmController` — `POST /api/settings/llm/test` (per-tier strategy/latency),

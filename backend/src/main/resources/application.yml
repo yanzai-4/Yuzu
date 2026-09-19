@@ -39,6 +39,14 @@ management:
       show-details: never
 
 yuzu:
+  llm:
+    budget:
+      # v0.0.31 🍊 Automatic pause for model calls. 0 / unset means unlimited (the demo default).
+      # When a ceiling is reached the priority gate refuses new calls, the console gets one error banner,
+      # and every module degrades gracefully instead of eight agents hammering the provider.
+      max-total-tokens: 0
+      max-cost-usd: 0
+      usd-per-million-tokens: 0
   # Workgroup time zone used for every natural-language time shown to agents and humans.
   zone: America/Los_Angeles
   # Root directory of the per-agent workspaces (large storage).
