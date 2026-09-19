@@ -31,7 +31,7 @@ import java.util.concurrent.ThreadLocalRandom;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/** v0.0.17 🍊 Main consciousness end to end: THINK loops, ACT hand-off, working memory without duplicates, streak cap. */
+/** v0.0.28 🍊 Main consciousness end to end: THINK loops, ACT hand-off, working memory without duplicates, streak cap. */
 @IntegrationTest
 @Import(MainConsciousnessIntegrationTest.CapturingActions.class)
 class MainConsciousnessIntegrationTest {
@@ -125,19 +125,30 @@ class MainConsciousnessIntegrationTest {
             server.enqueue(200, main("still thinking " + i, "THINK", List.of(), "\"more\""));
         }
         chat.postHuman(roomId, alice.id(), "@Lime ponder the meaning of citrus");
-        for (int i = 0; i < 400 && withoutPlanning() < 10; i++) {
+        for (int i = 0; i < 400 && deliberateRequests() < 10; i++) {
             Thread.sleep(20);
         }
         Thread.sleep(500);
-        assertThat(withoutPlanning()).isEqualTo(2 + 8);
+        assertThat(deliberateRequests()).isEqualTo(2 + 8);
     }
 
-    /** v0.0.21 🍊 Requests other than the planning module's (planning runs on every intake). */
-    private long withoutPlanning() {
-        return server.requests().stream().filter(b -> !b.contains(FakeLlmServer.schema("planning"))).count();
+    /**
+     * v0.0.28 🍊 Requests of the deliberate path only.
+     *
+     * <p>Planning runs on every intake and the subconscious runs beside every non-subconscious pool message;
+     * both answer from standing replies, so they never consume the scripted queue and never count here.</p>
+     */
+    private long deliberateRequests() {
+        return server.requests().stream()
+                .filter(b -> !b.contains(FakeLlmServer.schema("planning")))
+                .filter(b -> !b.contains(FakeLlmServer.schema("subconscious")))
+                .count();
     }
 
     private void forwardAndGateSafe() {
+        server.defaultFor(FakeLlmServer.schema("subconscious"), FakeLlmServer.completion(
+                "{\"reasoning\":\"nothing to add\",\"advice\":null,\"learn\":[],\"remember\":[],\"conflictUpdates\":[]}",
+                1200, 0, 10));
         server.enqueue(200, FakeLlmServer.completion("{\"reasoning\":\"work\",\"decision\":\"FORWARD\",\"replyText\":null,\"ackText\":null,\"topicClosed\":false}", 1400, 0, 20))
                 .enqueue(200, FakeLlmServer.completion("{\"reasoning\":\"ok\",\"verdict\":\"SAFE\",\"violations\":[],\"masks\":[],\"userFacingReason\":null}", 1500, 1024, 10));
     }
