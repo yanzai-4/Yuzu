@@ -25,11 +25,15 @@ See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the design.
 
 ## Run locally
 
-> Detailed instructions are completed as the build progresses (see `scripts/`).
+Prerequisites: JDK 21, Maven 3.9+, Node 20+, MySQL 9.x binaries (`mysqld`, `mysql`) on the PATH.
 
 ```bash
-./scripts/dev.sh
+./scripts/db.sh init-db   # first run: private MySQL instance on 127.0.0.1:3307 (data in data/mysql)
+./scripts/dev.sh          # starts MySQL, the backend (:8080) and the frontend (:5173)
 ```
+
+The project runs its own MySQL instance (`scripts/db.sh start|stop|status|shell`) so it never touches a
+system MySQL installation. Backend tests use the `yuzu_test` database on the same instance.
 
 ## Conventions
 

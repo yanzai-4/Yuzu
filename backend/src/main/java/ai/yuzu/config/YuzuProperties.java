@@ -7,19 +7,25 @@ import java.time.ZoneId;
 import java.util.List;
 
 /**
- * v0.0.1 🍊 Typed view of the {@code yuzu.*} configuration namespace.
+ * v0.0.2 🍊 Typed view of the {@code yuzu.*} configuration namespace.
  *
  * @param zone          workgroup time zone for every natural-language time
- * @param workspaceRoot root directory of the per-agent workspaces
+ * @param workspaceRoot root directory of the per-agent workspaces (plain string; resolved against the
+ *                      working directory, never as a classpath resource)
  * @param corsOrigins   origins allowed to call the API directly
  */
 @ConfigurationProperties(prefix = "yuzu")
-public record YuzuProperties(ZoneId zone, Path workspaceRoot, List<String> corsOrigins) {
+public record YuzuProperties(ZoneId zone, String workspaceRoot, List<String> corsOrigins) {
 
-    /** v0.0.1 🍊 Applies safe defaults for missing values. */
+    /** v0.0.2 🍊 Applies safe defaults for missing values. */
     public YuzuProperties {
         zone = zone == null ? ZoneId.of("America/Los_Angeles") : zone;
-        workspaceRoot = (workspaceRoot == null ? Path.of("../workspaces") : workspaceRoot).toAbsolutePath().normalize();
+        workspaceRoot = workspaceRoot == null || workspaceRoot.isBlank() ? "../workspaces" : workspaceRoot;
         corsOrigins = corsOrigins == null ? List.of() : List.copyOf(corsOrigins);
+    }
+
+    /** v0.0.2 🍊 Absolute, normalized workspace root directory. */
+    public Path workspaceRootPath() {
+        return Path.of(workspaceRoot).toAbsolutePath().normalize();
     }
 }

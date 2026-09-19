@@ -1,4 +1,4 @@
-# v0.0.1 🍊 Default configuration of the Yuzu backend. Local overrides go to application-local.yml (gitignored).
+# v0.0.2 🍊 Default configuration of the Yuzu backend. Local overrides go to application-local.yml (gitignored).
 server:
   port: 8080
   shutdown: graceful
@@ -9,6 +9,20 @@ spring:
   threads:
     virtual:
       enabled: true
+  datasource:
+    # Project-local MySQL instance managed by scripts/db.sh (port 3307, UTC, stopwords disabled).
+    url: jdbc:mysql://127.0.0.1:${YUZU_DB_PORT:3307}/${YUZU_DB_NAME:yuzu}?sslMode=DISABLED&allowPublicKeyRetrieval=true&connectionTimeZone=UTC&forceConnectionTimeZoneToSession=true&rewriteBatchedStatements=true&cachePrepStmts=true&prepStmtCacheSize=256&prepStmtCacheSqlLimit=2048
+    username: ${YUZU_DB_USER:yuzu}
+    password: ${YUZU_DB_PASSWORD:yuzu_local_dev}
+    hikari:
+      pool-name: yuzu-db
+      maximum-pool-size: 20
+      minimum-idle: 4
+      # ngram FULLTEXT must never see stopwords (they drop every token that contains them).
+      connection-init-sql: SET SESSION innodb_ft_enable_stopword = OFF
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
   jackson:
     default-property-inclusion: non_null
   mvc:

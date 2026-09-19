@@ -1,17 +1,12 @@
 #!/usr/bin/env bash
-# v0.0.1 🍊 Local development launcher: MySQL (if installed), backend on JDK 21, frontend dev server.
+# v0.0.2 🍊 Local development launcher: project MySQL (port 3307), backend on JDK 21, frontend dev server.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 export JAVA_HOME="$(/usr/libexec/java_home -v 21)"
 
 start_mysql() {
-  if command -v mysqladmin >/dev/null 2>&1; then
-    if ! mysqladmin -uroot ping >/dev/null 2>&1; then
-      echo "🍊 Starting MySQL..."
-      mysql.server start
-    fi
-  fi
+  "$ROOT/scripts/db.sh" start
 }
 
 start_backend() {
