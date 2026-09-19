@@ -1,0 +1,35 @@
+# v0.0.1 🍊 Default configuration of the Yuzu backend. Local overrides go to application-local.yml (gitignored).
+server:
+  port: 8080
+  shutdown: graceful
+
+spring:
+  application:
+    name: yuzu
+  threads:
+    virtual:
+      enabled: true
+  jackson:
+    default-property-inclusion: non_null
+  mvc:
+    async:
+      request-timeout: -1
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+
+yuzu:
+  # Workgroup time zone used for every natural-language time shown to agents and humans.
+  zone: America/Los_Angeles
+  # Root directory of the per-agent workspaces (large storage).
+  workspace-root: ../workspaces
+  # Origins allowed to call the API directly (the Vite dev server proxies, so this is rarely needed).
+  cors-origins:
+    - http://localhost:5173
+    - http://127.0.0.1:5173
