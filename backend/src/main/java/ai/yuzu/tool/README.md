@@ -1,6 +1,6 @@
 # ai.yuzu.tool
 
-> v0.0.22 🍊 Tools: "half AI, half code" — the AI decides arguments, code executes with its own guards.
+> v0.0.28 🍊 Tools: "half AI, half code" — the AI decides arguments, code executes with its own guards.
 
 | Sub-package | Responsibility |
 |---|---|
@@ -14,4 +14,4 @@
 | `impl.trade` | `market_quote`, `portfolio_read`, `trade_execute` (approval card above the threshold) + `TradeApprovalHandler` |
 | `impl.web` | `web_browse` (untrusted: search and pages go through the outbound safety review) |
 | `impl.code` | `code_write` (trusted: writes into `code/`, runs offline in `sandbox-exec`) |
-| `impl.*` (next) | learning |
+| `impl.learn` | `learn`, the main consciousness's own door into habit memory (same de-duplication and conflict flow as the subconscious) |
