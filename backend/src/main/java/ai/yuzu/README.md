@@ -14,6 +14,7 @@ module with its own README:
 | `room` | Rooms, human membership (join by username), cached room directory |
 | `chat` | Group chat write path, mentions, in-memory anchored window, agent fan-out hook |
 | `card` | Question and approval cards: open as fanout-free chat messages, answered over REST, first answer wins, handlers by purpose |
+| `task` | Tickets and per-agent task lists (tick/strike only, publisher approval before archive, last 3 archived for planning), REST + snapshot |
 | `bootstrap` | `/api/bootstrap` snapshot assembled from feature contributors |
 | `agent` | Agents as employees: roles, permissions, limits, citrus identities, hiring (max 8) |
 | `agent.runtime` | Per-agent runtime containers keyed by agent id |
