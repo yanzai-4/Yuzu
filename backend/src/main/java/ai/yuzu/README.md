@@ -1,6 +1,6 @@
 # ai.yuzu
 
-> v0.0.3 🍊 Root package of the Yuzu backend.
+> v0.0.5 🍊 Root package of the Yuzu backend.
 
 `YuzuApplication` boots Spring Boot with virtual threads enabled. Every sub-package is a feature
 module with its own README:
@@ -11,5 +11,8 @@ module with its own README:
 | `config` | Typed configuration and core infrastructure beans |
 | `persistence` | Agent-scoped repository base class and batched telemetry writer |
 | `realtime` | SSE hub, replay buffer, stream endpoint, realtime error reporter |
+| `room` | Rooms, human membership (join by username), cached room directory |
+| `chat` | Group chat write path, mentions, in-memory anchored window, agent fan-out hook |
+| `bootstrap` | `/api/bootstrap` snapshot assembled from feature contributors |
 
 More packages are added milestone by milestone (see `docs/ARCHITECTURE.md`).

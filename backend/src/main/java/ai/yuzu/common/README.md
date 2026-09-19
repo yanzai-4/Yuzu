@@ -8,5 +8,6 @@
 | `time` | Natural-language time rendering and UTC database conversion |
 | `error` | `ErrorCode`, the `YuzuException` hierarchy, `ApiError`, the REST exception handler |
 | `concurrent` | Guarded async execution, error sinks, cooperative cancellation |
+| `json` | JSON column helpers and canonical rendering |
 
 Rule: nothing in `common` may depend on a feature package.
