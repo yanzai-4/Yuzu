@@ -25,5 +25,6 @@ module with its own README:
 | `external` | External agent modules: chat triage, safety review, behavior review, tool calling |
 | `tool` | Tool SPI, registry, permission guard and concrete tools |
 | `internal` | Internal agent modules: consciousness pool/main loop, subconscious, memory, ... |
+| `demo` | One-click seed of the collaboration demo: four role-matched coworkers and their simulated world |
 
 More packages are added milestone by milestone (see `docs/ARCHITECTURE.md`).
