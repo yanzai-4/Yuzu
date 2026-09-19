@@ -1,0 +1,6 @@
+# v0.0.4 🍊 Frontend-local ignores (the repository root .gitignore already covers node_modules/ and dist/).
+node_modules
+dist
+dist-ssr
+*.local
+*.tsbuildinfo

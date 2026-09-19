@@ -1,0 +1,236 @@
+/* v0.0.4 🍊 Office floor animations: every loop is a CSS keyframe keyed off [data-state] on the desk. */
+
+.desk-scene .citrus-char,
+.desk-scene .citrus-arm,
+.desk-scene .code-lines {
+  transform-box: view-box;
+}
+
+/* Eyes blink at a per-agent offset (--blink-delay). */
+.desk-scene .citrus-eyes {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: citrus-blink 5.5s infinite;
+  animation-delay: var(--blink-delay, 0s);
+}
+
+@keyframes citrus-blink {
+  0%,
+  93%,
+  100% {
+    transform: scaleY(1);
+  }
+  95% {
+    transform: scaleY(0.1);
+  }
+}
+
+/* IDLE: gentle breathing bob + steam from the mug. */
+.desk[data-state='IDLE'] .citrus-char {
+  animation: citrus-breathe 3.4s ease-in-out infinite;
+}
+
+@keyframes citrus-breathe {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-1.8px);
+  }
+}
+
+.desk .steam {
+  opacity: 0;
+}
+
+.desk[data-state='IDLE'] .steam {
+  animation: citrus-steam 2.8s ease-in-out infinite;
+}
+
+.desk[data-state='IDLE'] .steam + .steam {
+  animation-delay: 1.4s;
+}
+
+@keyframes citrus-steam {
+  0% {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  40% {
+    opacity: 0.7;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+}
+
+/* WORKING: typing arms, flickering screen, scrolling code. */
+.desk[data-state='WORKING'] .citrus-arm-l {
+  animation: citrus-type 0.26s ease-in-out infinite alternate;
+}
+
+.desk[data-state='WORKING'] .citrus-arm-r {
+  animation: citrus-type 0.26s ease-in-out infinite alternate-reverse;
+}
+
+@keyframes citrus-type {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-2.4px);
+  }
+}
+
+.desk[data-state='WORKING'] .laptop-screen {
+  animation: citrus-flicker 1.3s steps(2, end) infinite;
+}
+
+.desk[data-state='WORKING'] .code-lines {
+  animation: citrus-code 2.2s steps(5, end) infinite;
+}
+
+@keyframes citrus-flicker {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.78;
+  }
+}
+
+@keyframes citrus-code {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-5px);
+  }
+}
+
+/* THINKING: thought dots pulse one after another. */
+.desk .thought-dot {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: citrus-thought 1.8s ease-in-out infinite;
+}
+
+.desk .thought-dot:nth-child(2) {
+  animation-delay: 0.3s;
+}
+
+.desk .thought-dot:nth-child(3) {
+  animation-delay: 0.6s;
+}
+
+@keyframes citrus-thought {
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* TALKING: bouncy body and a moving mouth. */
+.desk[data-state='TALKING'] .citrus-char {
+  animation: citrus-bounce 0.55s ease-in-out infinite;
+}
+
+.desk-scene .citrus-mouth-talk {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: citrus-mouth 0.3s ease-in-out infinite alternate;
+}
+
+@keyframes citrus-bounce {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-2px) rotate(-1deg);
+  }
+}
+
+@keyframes citrus-mouth {
+  from {
+    transform: scaleY(0.35);
+  }
+  to {
+    transform: scaleY(1.15);
+  }
+}
+
+/* WAITING: the little clock ticks. */
+.desk .clock-hand {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: citrus-spin 3s linear infinite;
+}
+
+@keyframes citrus-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* PAUSED: greyed out, floating zzz. */
+.desk[data-state='PAUSED'] .citrus-char {
+  filter: grayscale(1);
+  opacity: 0.72;
+}
+
+.desk .zzz {
+  animation: citrus-zzz 2.6s ease-in-out infinite;
+}
+
+.desk .zzz:nth-child(2) {
+  animation-delay: 0.6s;
+}
+
+.desk .zzz:nth-child(3) {
+  animation-delay: 1.2s;
+}
+
+@keyframes citrus-zzz {
+  0% {
+    opacity: 0;
+    transform: translate(0, 4px);
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(5px, -7px);
+  }
+}
+
+/* ERROR: red tint and a periodic shake. */
+.desk[data-state='ERROR'] .citrus-char {
+  animation: citrus-shake 2.4s ease-in-out infinite;
+}
+
+@keyframes citrus-shake {
+  0%,
+  24%,
+  100% {
+    transform: translateX(0);
+  }
+  4%,
+  12%,
+  20% {
+    transform: translateX(-2.2px);
+  }
+  8%,
+  16% {
+    transform: translateX(2.2px);
+  }
+}
