@@ -12,6 +12,7 @@ import ai.yuzu.llm.provider.ProviderRequestException;
 import ai.yuzu.llm.provider.ResponseFormat;
 import ai.yuzu.llm.provider.StreamSink;
 import ai.yuzu.llm.structured.OutputStrategy;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.concurrent.ThreadLocalRandom;
@@ -36,7 +37,8 @@ public class LlmExecutor {
     private final CapabilityRegistry capabilities;
     private final Sleeper sleeper;
 
-    /** v0.0.8 🍊 Production constructor. */
+    /** v0.0.12 🍊 Production constructor (marked @Autowired so Spring picks it over the test constructor). */
+    @Autowired
     public LlmExecutor(ChatProvider provider, CapabilityRegistry capabilities) {
         this(provider, capabilities, Thread::sleep);
     }

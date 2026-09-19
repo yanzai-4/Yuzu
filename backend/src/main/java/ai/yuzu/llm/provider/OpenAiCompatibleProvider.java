@@ -11,6 +11,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -46,7 +47,8 @@ public class OpenAiCompatibleProvider implements ChatProvider {
     private final HttpClient http;
     private final Duration headerTimeout;
 
-    /** v0.0.8 🍊 Creates the client (HTTP/1.1 for gateway compatibility, virtual-thread executor). */
+    /** v0.0.12 🍊 Creates the client (HTTP/1.1, virtual-thread executor); @Autowired so Spring picks it over the test constructor. */
+    @Autowired
     public OpenAiCompatibleProvider(ObjectMapper mapper) {
         this(mapper, Duration.ofSeconds(180));
     }
