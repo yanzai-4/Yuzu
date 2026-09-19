@@ -116,6 +116,11 @@ export class ChatDraft {
 export function prependOlderMessages(messages: ChatMessage[], pageSize: number): void {
   const state = useChatStore.getState();
   const fresh = messages.filter((m) => !state.byId[m.id]).sort((a, b) => a.seq - b.seq);
+  if (fresh.length === 0) {
+    // Nothing new: keep the list identity so the virtual list does not re-layout.
+    useChatStore.setState({ hasOlder: false, loadingOlder: false });
+    return;
+  }
   const byId = { ...state.byId };
   for (const message of fresh) byId[message.id] = message;
   useChatStore.setState({

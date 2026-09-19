@@ -9,8 +9,9 @@ export const LOG_CAP = 300;
 /** v0.0.4 🍊 One failure shown in the Trace tab's error log. */
 export interface ErrorEntry {
   key: string;
-  source: 'request' | 'stream';
-  /** "POST /api/agents" for requests; the failing context for stream errors. */
+  /** REST request, asynchronous `error` event, or a crashed UI pane. */
+  source: 'request' | 'stream' | 'ui';
+  /** "POST /api/agents" for requests; the failing context for stream errors; the pane for UI crashes. */
   context: string | null;
   error: ApiError;
 }

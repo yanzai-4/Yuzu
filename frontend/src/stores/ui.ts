@@ -26,6 +26,10 @@ export interface UiState {
   mobilePane: Pane;
   insightsTab: InsightsTab;
   toasts: Toast[];
+  /** Chat messages already seen in the narrow layout (drives the unread badge). */
+  chatSeen: number;
+  /** Role preselected when the hire form opens from an empty desk. */
+  hireRole: string | null;
 }
 
 const MAX_TOASTS = 5;
@@ -39,11 +43,23 @@ export const useUiStore = create<UiState>()(() => ({
   mobilePane: 'chat',
   insightsTab: 'tasks',
   toasts: [],
+  chatSeen: 0,
+  hireRole: null,
 }));
+
+/** v0.0.4 🍊 Records how many chat messages the user has seen (narrow layout badge). */
+export function markChatSeen(count: number): void {
+  if (useUiStore.getState().chatSeen !== count) useUiStore.setState({ chatSeen: count });
+}
 
 /** v0.0.4 🍊 Opens a dialog (closing any other). */
 export function openDialog(dialog: Exclude<DialogState, null>): void {
   useUiStore.setState({ dialog });
+}
+
+/** v0.0.4 🍊 Opens the Coworkers dialog on the hire form (optionally with a role preselected). */
+export function openHireDialog(role: string | null = null): void {
+  useUiStore.setState({ dialog: { kind: 'coworkers', view: 'hire' }, hireRole: role, inspectorAgentId: null });
 }
 
 /** v0.0.4 🍊 Closes the open dialog. */
@@ -81,8 +97,12 @@ export function setInsightsTab(insightsTab: InsightsTab): void {
   useUiStore.setState({ insightsTab });
 }
 
-/** v0.0.4 🍊 Shows a toast (the oldest ones are dropped beyond five); returns its id. */
+/** v0.0.4 🍊 Shows a toast (identical visible toasts are not repeated; beyond five the oldest go). */
 export function pushToast(toast: Omit<Toast, 'id'>): number {
+  const duplicate = useUiStore
+    .getState()
+    .toasts.find((t) => t.title === toast.title && t.message === toast.message && t.code === toast.code);
+  if (duplicate) return duplicate.id;
   const id = ++toastSeq;
   useUiStore.setState((s) => ({ toasts: [...s.toasts, { ...toast, id }].slice(-MAX_TOASTS) }));
   return id;
