@@ -1,0 +1,297 @@
+/* v0.0.4 🍊 Global styles: Tailwind v4, citrus design tokens (light + dark) and shared utilities. */
+@import 'tailwindcss';
+
+/* ---------------------------------------------------------------------------------------------
+ * Design tokens. Components only use the semantic names below (bg-surface, text-ink, ...), so a
+ * theme switch is a matter of redefining variables. Dark values apply when the OS prefers dark,
+ * unless the user forced a theme with <html data-theme="light|dark">.
+ * ------------------------------------------------------------------------------------------- */
+:root {
+  color-scheme: light;
+  --bg: #fcf7ee;
+  --surface: #ffffff;
+  --surface-2: #fff8ec;
+  --surface-3: #fbeed6;
+  --line: #eee0c6;
+  --line-strong: #dfc596;
+  --ink: #2a1f14;
+  --ink-2: #5a4632;
+  --ink-3: #75604a;
+  --accent: #c2410c;
+  --accent-hover: #9a3412;
+  --accent-ink: #ffffff;
+  --accent-soft: #ffedd5;
+  --accent-soft-ink: #9a3412;
+  --citrus: #f5b700;
+  --leaf: #3f7d20;
+  --leaf-soft: #e6f4dc;
+  --leaf-ink: #2c5a16;
+  --warn-bg: #fff3a6;
+  --warn-line: #e6b800;
+  --warn-ink: #3a2c00;
+  --danger: #c42b1c;
+  --danger-soft: #fde6e3;
+  --danger-ink: #9b1c10;
+  --ok: #1f7a3a;
+  --ok-soft: #def5e3;
+  --info: #1d5fd1;
+  --info-soft: #e0ebff;
+  --focus: #f59e0b;
+  --floor-a: #f7ead2;
+  --floor-b: #f3e4c8;
+  --desk-top: #d69b5e;
+  --desk-edge: #b07338;
+  --desk-leg: #9a6430;
+  --laptop-body: #3b4150;
+  --laptop-base: #a5adbb;
+  --screen: #cfe8ff;
+  --screen-ink: #3d7bd9;
+  --shadow-sm: 0 1px 2px rgb(80 50 10 / 0.07);
+  --shadow-md: 0 2px 6px rgb(80 50 10 / 0.08), 0 8px 24px rgb(80 50 10 / 0.08);
+  --shadow-lg: 0 12px 48px rgb(40 25 5 / 0.22);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+    --bg: #16120d;
+    --surface: #1f1a14;
+    --surface-2: #272018;
+    --surface-3: #31281d;
+    --line: #3a3024;
+    --line-strong: #56473a;
+    --ink: #f7eee0;
+    --ink-2: #d8c7ae;
+    --ink-3: #a9967d;
+    --accent: #fb923c;
+    --accent-hover: #fdba74;
+    --accent-ink: #1f1206;
+    --accent-soft: #3d2410;
+    --accent-soft-ink: #fdba74;
+    --citrus: #f5c542;
+    --leaf: #86c35a;
+    --leaf-soft: #22301a;
+    --leaf-ink: #b5e08f;
+    --warn-bg: #d9b21a;
+    --warn-line: #f5d042;
+    --warn-ink: #1c1600;
+    --danger: #f87171;
+    --danger-soft: #3b1714;
+    --danger-ink: #fca5a5;
+    --ok: #4ade80;
+    --ok-soft: #14301d;
+    --info: #7aa7ff;
+    --info-soft: #172542;
+    --focus: #fbbf24;
+    --floor-a: #231c15;
+    --floor-b: #1e1812;
+    --desk-top: #8a5a33;
+    --desk-edge: #6d4526;
+    --desk-leg: #5a391f;
+    --laptop-body: #262a33;
+    --laptop-base: #5b6270;
+    --screen: #1d3b5c;
+    --screen-ink: #7cc0ff;
+    --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.3);
+    --shadow-md: 0 2px 6px rgb(0 0 0 / 0.3), 0 8px 24px rgb(0 0 0 / 0.25);
+    --shadow-lg: 0 12px 48px rgb(0 0 0 / 0.55);
+  }
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #16120d;
+  --surface: #1f1a14;
+  --surface-2: #272018;
+  --surface-3: #31281d;
+  --line: #3a3024;
+  --line-strong: #56473a;
+  --ink: #f7eee0;
+  --ink-2: #d8c7ae;
+  --ink-3: #a9967d;
+  --accent: #fb923c;
+  --accent-hover: #fdba74;
+  --accent-ink: #1f1206;
+  --accent-soft: #3d2410;
+  --accent-soft-ink: #fdba74;
+  --citrus: #f5c542;
+  --leaf: #86c35a;
+  --leaf-soft: #22301a;
+  --leaf-ink: #b5e08f;
+  --warn-bg: #d9b21a;
+  --warn-line: #f5d042;
+  --warn-ink: #1c1600;
+  --danger: #f87171;
+  --danger-soft: #3b1714;
+  --danger-ink: #fca5a5;
+  --ok: #4ade80;
+  --ok-soft: #14301d;
+  --info: #7aa7ff;
+  --info-soft: #172542;
+  --focus: #fbbf24;
+  --floor-a: #231c15;
+  --floor-b: #1e1812;
+  --desk-top: #8a5a33;
+  --desk-edge: #6d4526;
+  --desk-leg: #5a391f;
+  --laptop-body: #262a33;
+  --laptop-base: #5b6270;
+  --screen: #1d3b5c;
+  --screen-ink: #7cc0ff;
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.3);
+  --shadow-md: 0 2px 6px rgb(0 0 0 / 0.3), 0 8px 24px rgb(0 0 0 / 0.25);
+  --shadow-lg: 0 12px 48px rgb(0 0 0 / 0.55);
+}
+
+/* Tailwind utilities (bg-surface, text-ink-2, border-line, ...) resolve to the live variables. */
+@theme inline {
+  --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif,
+    'Apple Color Emoji', 'Segoe UI Emoji';
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-soft-ink: var(--accent-soft-ink);
+  --color-citrus: var(--citrus);
+  --color-leaf: var(--leaf);
+  --color-leaf-soft: var(--leaf-soft);
+  --color-leaf-ink: var(--leaf-ink);
+  --color-warn-bg: var(--warn-bg);
+  --color-warn-line: var(--warn-line);
+  --color-warn-ink: var(--warn-ink);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-danger-ink: var(--danger-ink);
+  --color-ok: var(--ok);
+  --color-ok-soft: var(--ok-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-focus: var(--focus);
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background: color-mix(in oklab, var(--citrus) 45%, transparent);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']) {
+    cursor: pointer;
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--line-strong) transparent;
+  }
+}
+
+/* Floor tiles behind the desks. */
+@utility office-floor {
+  background-color: var(--floor-a);
+  background-image:
+    linear-gradient(45deg, var(--floor-b) 25%, transparent 25%, transparent 75%, var(--floor-b) 75%),
+    linear-gradient(45deg, var(--floor-b) 25%, transparent 25%, transparent 75%, var(--floor-b) 75%);
+  background-size: 48px 48px;
+  background-position:
+    0 0,
+    24px 24px;
+}
+
+/* Yellow/black stripes of the SIMULATED banner. */
+@utility sim-stripes {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    var(--warn-bg) 0 10px,
+    color-mix(in oklab, var(--warn-line) 70%, var(--warn-bg)) 10px 20px
+  );
+}
+
+@keyframes yuzu-caret {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes yuzu-typing-dot {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.45;
+  }
+  30% {
+    transform: translateY(-3px);
+    opacity: 1;
+  }
+}
+
+@keyframes yuzu-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@utility animate-caret {
+  animation: yuzu-caret 1s steps(1) infinite;
+}
+
+@utility animate-soft-pulse {
+  animation: yuzu-pulse 1.4s ease-in-out infinite;
+}
+
+@utility animate-typing-dot {
+  animation: yuzu-typing-dot 1.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
