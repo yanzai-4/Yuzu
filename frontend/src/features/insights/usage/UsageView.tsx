@@ -6,12 +6,11 @@ import { SectionTitle } from '../../../components/Field';
 import { Tabs } from '../../../components/Tabs';
 import { clockTimeWithSeconds } from '../../../lib/time';
 import type { PersonRef } from '../../../stores/people';
+import { setUsageDimension, useUiStore, type UsageDimension } from '../../../stores/ui';
 import { BreakdownChart, SegmentLegend } from './BreakdownChart';
 import { StatTiles } from './StatTiles';
 
-type Dimension = 'agent' | 'module' | 'tier' | 'model';
-
-const ROWS: Record<Dimension, (u: UsageSnapshot) => UsageRow[]> = {
+const ROWS: Record<UsageDimension, (u: UsageSnapshot) => UsageRow[]> = {
   agent: (u) => u.byAgent ?? [],
   module: (u) => u.byModule ?? [],
   tier: (u) => u.byTier ?? [],
@@ -20,7 +19,7 @@ const ROWS: Record<Dimension, (u: UsageSnapshot) => UsageRow[]> = {
 
 /** v0.0.4 🍊 Usage tab body (props only): KPI tiles and token breakdowns by agent, module, tier, model. */
 export function UsageView({ usage, person }: { usage: UsageSnapshot; person: (id: string) => PersonRef | null }) {
-  const [dimension, setDimension] = useState<Dimension>('agent');
+  const dimension = useUiStore((s) => s.usageDimension);
   const [asTable, setAsTable] = useState(false);
 
   const labelOf = useCallback(
@@ -56,7 +55,7 @@ export function UsageView({ usage, person }: { usage: UsageSnapshot; person: (id
         <Tabs
           label="Breakdown dimension"
           value={dimension}
-          onChange={setDimension}
+          onChange={setUsageDimension}
           stretch
           tabs={[
             { id: 'agent', label: 'Agent' },

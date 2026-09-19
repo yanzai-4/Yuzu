@@ -1,17 +1,17 @@
-import { useCallback, useState } from 'react';
+import { useCallback } from 'react';
 import { Virtuoso } from 'react-virtuoso';
 import type { ModuleEvent } from '../../../api/types';
 import { EmptyState } from '../../../components/EmptyState';
 import { usePeople } from '../../../stores/selectors';
 import { clearTraceEvents, setTracePaused, TRACE_CAP } from '../../../stores/trace';
-import { openTrace } from '../../../stores/ui';
+import { openTrace, setTraceFilter, useUiStore } from '../../../stores/ui';
 import { EventRow } from './EventRow';
 import { TraceFilters } from './TraceFilters';
-import { NO_FILTER, useAgentFilterOptions, useFilteredEvents, type TraceFilter } from './useTraceData';
+import { useAgentFilterOptions, useFilteredEvents } from './useTraceData';
 
 /** v0.0.4 🍊 Live `module.event` log (container): filters + virtualized, newest-first list. */
 export function EventStream() {
-  const [filter, setFilter] = useState<TraceFilter>(NO_FILTER);
+  const filter = useUiStore((s) => s.traceFilter);
   const { events, total, paused } = useFilteredEvents(filter);
   const agentOptions = useAgentFilterOptions();
   const person = usePeople();
@@ -25,7 +25,7 @@ export function EventStream() {
     <div className="flex h-full flex-col">
       <TraceFilters
         filter={filter}
-        onChange={setFilter}
+        onChange={setTraceFilter}
         agentOptions={agentOptions}
         shown={events.length}
         total={total}

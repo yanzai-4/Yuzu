@@ -1,6 +1,6 @@
-import { useState } from 'react';
 import { Tabs } from '../../../components/Tabs';
 import { clearErrors } from '../../../stores/trace';
+import { setTraceView, useUiStore } from '../../../stores/ui';
 import { ErrorList } from './ErrorList';
 import { EventStream } from './EventStream';
 import { IncidentList } from './IncidentList';
@@ -8,7 +8,7 @@ import { useErrorViews, useIncidentViews } from './useTraceData';
 
 /** v0.0.4 🍊 Trace tab (container): live module events, security incidents and the error log. */
 export function TraceTab() {
-  const [view, setView] = useState<'events' | 'incidents' | 'errors'>('events');
+  const view = useUiStore((s) => s.traceView);
   const incidents = useIncidentViews();
   const errors = useErrorViews();
   return (
@@ -17,7 +17,7 @@ export function TraceTab() {
         <Tabs
           label="Trace views"
           value={view}
-          onChange={setView}
+          onChange={setTraceView}
           stretch
           tabs={[
             { id: 'events', label: 'Live events', icon: 'activity' },

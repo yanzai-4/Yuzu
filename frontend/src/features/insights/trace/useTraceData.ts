@@ -4,16 +4,10 @@ import type { PersonRef } from '../../../stores/people';
 import { useRoomStore } from '../../../stores/room';
 import { usePeople } from '../../../stores/selectors';
 import { useTraceStore, type ErrorEntry } from '../../../stores/trace';
+import { NO_FILTER, type TraceFilter } from '../../../stores/ui';
 
-/** v0.0.4 🍊 Filters of the live event list ('ALL' = no filter). */
-export interface TraceFilter {
-  agentId: string;
-  module: string;
-  phase: string;
-}
-
-/** v0.0.4 🍊 No filter at all. */
-export const NO_FILTER: TraceFilter = { agentId: 'ALL', module: 'ALL', phase: 'ALL' };
+export { NO_FILTER };
+export type { TraceFilter };
 
 /** v0.0.4 🍊 The live events (or the paused snapshot) after filtering, newest first. */
 export function useFilteredEvents(filter: TraceFilter): { events: ModuleEvent[]; total: number; paused: boolean } {

@@ -1,6 +1,6 @@
-import { useState } from 'react';
 import { EmptyState } from '../../../components/EmptyState';
 import { Tabs } from '../../../components/Tabs';
+import { setTasksView, useUiStore } from '../../../stores/ui';
 import { approveList } from './taskActions';
 import { TaskListCard } from './TaskListCard';
 import { TicketBoard } from './TicketBoard';
@@ -10,14 +10,14 @@ import { useTaskCards, useTicketColumns } from './useTasksData';
 export function TasksTab() {
   const { cards, awaiting } = useTaskCards();
   const board = useTicketColumns();
-  const [view, setView] = useState<'lists' | 'board'>('lists');
+  const view = useUiStore((s) => s.tasksView);
 
   return (
     <div className="space-y-3 p-3">
       <Tabs
         label="Tasks views"
         value={view}
-        onChange={setView}
+        onChange={setTasksView}
         stretch
         tabs={[
           { id: 'lists', label: 'Task lists', icon: 'list', count: awaiting, alert: awaiting > 0 },

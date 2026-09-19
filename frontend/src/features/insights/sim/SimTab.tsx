@@ -1,6 +1,6 @@
-import { useState } from 'react';
 import { Icon } from '../../../components/Icon';
 import { Tabs } from '../../../components/Tabs';
+import { setSimView, useUiStore } from '../../../stores/ui';
 import { EmailList } from './EmailList';
 import { PortfolioList } from './PortfolioList';
 import { TradeTable } from './TradeTable';
@@ -9,7 +9,7 @@ import { useSimData } from './useSimData';
 /** v0.0.4 🍊 Simulation tab (container): SIMULATED banner, then emails, trades and portfolios. */
 export function SimTab() {
   const data = useSimData();
-  const [view, setView] = useState<'emails' | 'trades' | 'portfolios'>('emails');
+  const view = useUiStore((s) => s.simView);
   return (
     <div className="space-y-3 p-3">
       <div role="note" className="sim-stripes overflow-hidden rounded-xl border border-warn-line p-0.5">
@@ -24,7 +24,7 @@ export function SimTab() {
       <Tabs
         label="Simulation views"
         value={view}
-        onChange={setView}
+        onChange={setSimView}
         stretch
         tabs={[
           { id: 'emails', label: 'Emails', icon: 'mail', count: data.emails.length },

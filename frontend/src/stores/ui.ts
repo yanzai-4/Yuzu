@@ -4,6 +4,23 @@ import { create } from 'zustand';
 export type Pane = 'chat' | 'office' | 'insights';
 /** v0.0.4 🍊 Tabs of the insights pane. */
 export type InsightsTab = 'tasks' | 'usage' | 'sim' | 'trace';
+/** v0.0.26 🍊 Sub-tabs of the Tasks insights tab. */
+export type TasksView = 'lists' | 'board';
+/** v0.0.26 🍊 Sub-tabs of the Sim insights tab. */
+export type SimView = 'emails' | 'trades' | 'portfolios';
+/** v0.0.26 🍊 Sub-tabs of the Trace insights tab. */
+export type TraceView = 'events' | 'incidents' | 'errors';
+/** v0.0.26 🍊 Breakdown dimension of the Usage tab. */
+export type UsageDimension = 'agent' | 'module' | 'tier' | 'model';
+/** v0.0.4 🍊 Filters of the live event list ('ALL' = no filter). */
+export interface TraceFilter {
+  agentId: string;
+  module: string;
+  phase: string;
+}
+
+/** v0.0.4 🍊 No filter at all. */
+export const NO_FILTER: TraceFilter = { agentId: 'ALL', module: 'ALL', phase: 'ALL' };
 /** v0.0.4 🍊 Which modal dialog is open. */
 export type DialogState = { kind: 'coworkers'; view: 'roster' | 'hire' } | { kind: 'console' } | null;
 
@@ -25,6 +42,16 @@ export interface UiState {
   traceId: string | null;
   mobilePane: Pane;
   insightsTab: InsightsTab;
+  /** Sub-tab of the Tasks tab. */
+  tasksView: TasksView;
+  /** Sub-tab of the Sim tab. */
+  simView: SimView;
+  /** Sub-tab of the Trace tab. */
+  traceView: TraceView;
+  /** Breakdown dimension of the Usage tab. */
+  usageDimension: UsageDimension;
+  /** Agent / module / phase filter of the live event stream. */
+  traceFilter: TraceFilter;
   toasts: Toast[];
   /** Chat messages already seen in the narrow layout (drives the unread badge). */
   chatSeen: number;
@@ -42,6 +69,11 @@ export const useUiStore = create<UiState>()(() => ({
   traceId: null,
   mobilePane: 'chat',
   insightsTab: 'tasks',
+  tasksView: 'lists',
+  simView: 'emails',
+  traceView: 'events',
+  usageDimension: 'agent',
+  traceFilter: NO_FILTER,
   toasts: [],
   chatSeen: 0,
   hireRole: null,
@@ -111,4 +143,29 @@ export function pushToast(toast: Omit<Toast, 'id'>): number {
 /** v0.0.4 🍊 Removes a toast. */
 export function dismissToast(id: number): void {
   useUiStore.setState((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) }));
+}
+
+/** v0.0.26 🍊 Switches the Tasks sub-tab. */
+export function setTasksView(tasksView: TasksView): void {
+  useUiStore.setState({ tasksView });
+}
+
+/** v0.0.26 🍊 Switches the Sim sub-tab. */
+export function setSimView(simView: SimView): void {
+  useUiStore.setState({ simView });
+}
+
+/** v0.0.26 🍊 Switches the Trace sub-tab. */
+export function setTraceView(traceView: TraceView): void {
+  useUiStore.setState({ traceView });
+}
+
+/** v0.0.26 🍊 Switches the Usage breakdown dimension. */
+export function setUsageDimension(usageDimension: UsageDimension): void {
+  useUiStore.setState({ usageDimension });
+}
+
+/** v0.0.26 🍊 Sets the live event stream filter. */
+export function setTraceFilter(traceFilter: TraceFilter): void {
+  useUiStore.setState({ traceFilter });
 }
