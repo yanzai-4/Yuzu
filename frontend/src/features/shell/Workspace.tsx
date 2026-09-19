@@ -9,6 +9,8 @@ import { AgentInspector } from '../agents/AgentInspector';
 import { AgentsDialog } from '../agents/AgentsDialog';
 import { ChatPane } from '../chat/ChatPane';
 import { ConsoleDialog } from '../console/ConsoleDialog';
+import { DemoBar } from '../demo/DemoBar';
+import { useDemoKeys } from '../demo/useDemoKeys';
 import { InsightsPane } from '../insights/InsightsPane';
 import { TraceWaterfall } from '../insights/trace/TraceWaterfall';
 import { OfficePane } from '../office/OfficePane';
@@ -21,6 +23,7 @@ import { useSessionRefresh } from './useSessionRefresh';
 export function Workspace() {
   useRoomStream(DEFAULT_ROOM_ID);
   useSessionRefresh();
+  useDemoKeys();
   const wide = useMediaQuery('(min-width: 1100px)');
   const compact = useMediaQuery('(max-width: 640px)');
   const pane = useUiStore((s) => s.mobilePane);
@@ -29,6 +32,7 @@ export function Workspace() {
   return (
     <div className="flex h-dvh flex-col bg-bg">
       <TopBar compact={compact} />
+      <DemoBar />
       {!bootstrapped ? (
         <BootScreen />
       ) : wide ? (
