@@ -18,6 +18,7 @@ import type {
   User,
   WorkingMemoryView,
 } from '../types';
+import type { RecordedLlmCall } from './llmCalls';
 import type { UsageMeter } from './usage';
 import { clone, nowText } from './util';
 
@@ -40,6 +41,8 @@ export interface MockState {
   settings: LlmSettingsView;
   events: ModuleEvent[];
   workingMemory: Map<string, WorkingMemoryView>;
+  /** v0.0.30 🍊 Recorded model calls behind the finished spans (the Trace tab's raw-request view). */
+  llmCalls: RecordedLlmCall[];
 }
 
 interface Client {

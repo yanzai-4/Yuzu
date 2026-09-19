@@ -7,6 +7,23 @@ import { clone, hex, nowText, sleep } from './util';
 
 const MAX_AGENTS = 8;
 
+/** v0.0.30 🍊 Encodes a history cursor the way the backend does (opaque base64 of "seq:<n>"). */
+function encodeCursor(index: number): string {
+  return btoa(`seq:${index}`).replace(/=+$/, '');
+}
+
+/** v0.0.30 🍊 Decodes a cursor produced by {@link encodeCursor}; null when it was not one. */
+function decodeCursor(cursor: string): number | null {
+  try {
+    const decoded = atob(cursor);
+    if (!decoded.startsWith('seq:')) return null;
+    const index = Number.parseInt(decoded.slice(4), 10);
+    return Number.isFinite(index) && index >= 0 ? index : null;
+  } catch {
+    return null;
+  }
+}
+
 type AgentsApi = Pick<
   YuzuApi,
   | 'listRoles'
@@ -17,9 +34,12 @@ type AgentsApi = Pick<
   | 'pauseAgent'
   | 'resumeAgent'
   | 'interruptAgent'
+  | 'stopAllAgents'
+  | 'resumeAllAgents'
   | 'getWorkingMemory'
   | 'getAgentTasks'
   | 'listAgentEvents'
+  | 'listAgentEventPage'
   | 'seedDemo'
 >;
 
@@ -140,6 +160,48 @@ export function createAgentsApi(ctx: MockContext): AgentsApi {
       return clone(state.statuses.get(agentId)!);
     },
 
+    async stopAllAgents(roomId) {
+      await ctx.latency();
+      let affected = 0;
+      for (const agent of [...state.agents.values()]) {
+        world.interrupt(agent.agentId);
+        if (agent.state === 'ACTIVE') {
+          affected++;
+          const next: Agent = { ...agent, state: 'PAUSED' };
+          state.agents.set(agent.agentId, next);
+          server.publish('agent.upsert', next, agent.agentId);
+        }
+        world.setStatus(agent.agentId, 'PAUSED', 'SYSTEM', 'Stopped by a human — taking a break', 0, 0);
+      }
+      return {
+        roomId,
+        action: 'STOP_ALL',
+        affected,
+        statuses: clone([...state.agents.values()].map((a) => state.statuses.get(a.agentId)!).filter(Boolean)),
+        time: nowText(),
+      };
+    },
+
+    async resumeAllAgents(roomId) {
+      await ctx.latency();
+      let affected = 0;
+      for (const agent of [...state.agents.values()]) {
+        if (agent.state !== 'PAUSED') continue;
+        affected++;
+        const next: Agent = { ...agent, state: 'ACTIVE' };
+        state.agents.set(agent.agentId, next);
+        server.publish('agent.upsert', next, agent.agentId);
+        world.setStatus(agent.agentId, 'IDLE', 'SYSTEM', 'Back at my desk', 0, 0);
+      }
+      return {
+        roomId,
+        action: 'RESUME_ALL',
+        affected,
+        statuses: clone([...state.agents.values()].map((a) => state.statuses.get(a.agentId)!).filter(Boolean)),
+        time: nowText(),
+      };
+    },
+
     async getWorkingMemory(agentId) {
       await ctx.latency();
       ctx.agent('GET', `/api/agents/${agentId}/working-memory`, agentId);
@@ -156,6 +218,24 @@ export function createAgentsApi(ctx: MockContext): AgentsApi {
       await ctx.latency();
       ctx.agent('GET', `/api/agents/${agentId}/events`, agentId);
       return clone(state.events.filter((e) => e.agentId === agentId).slice(-limit));
+    },
+
+    async listAgentEventPage(agentId, cursor, limit = 100) {
+      const path = `/api/agents/${agentId}/events`;
+      await ctx.latency();
+      ctx.agent('GET', path, agentId);
+      // The mock cursor mirrors the real opaque one: base64 of "seq:<index of the oldest row served>".
+      const mine = state.events.filter((e) => e.agentId === agentId);
+      const newestFirst = [...mine].reverse();
+      let from = 0;
+      if (cursor) {
+        const decoded = decodeCursor(cursor);
+        if (decoded === null) throw ctx.fail('GET', path, 'BAD_REQUEST', 'The cursor must be one returned by a previous page.', { cursor: '…' });
+        from = decoded;
+      }
+      const page = newestFirst.slice(from, from + limit);
+      const next = from + page.length;
+      return { events: clone(page), nextCursor: page.length < limit || next >= newestFirst.length ? null : encodeCursor(next) };
     },
 
     async seedDemo(roomId) {

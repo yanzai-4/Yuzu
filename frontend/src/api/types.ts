@@ -192,6 +192,57 @@ export interface ModuleEvent {
   time: string;
 }
 
+/** v0.0.30 🍊 One page of an agent's event history plus the cursor of the next (older) page. */
+export interface ModuleEventPage {
+  events: ModuleEvent[];
+  /** Value of the `X-Next-Cursor` response header; null when the history is exhausted. */
+  nextCursor: string | null;
+}
+
+/** v0.0.30 🍊 Result of a room-wide control action (`stop-all` / `resume-all`). */
+export interface RoomControlResult {
+  roomId: string;
+  action: 'STOP_ALL' | 'RESUME_ALL';
+  /** How many coworkers actually changed state. */
+  affected: number;
+  statuses: AgentStatus[];
+  time: string;
+}
+
+/** v0.0.30 🍊 One recorded HTTP attempt against the model provider (metadata; the payload is fetched on demand). */
+export interface LlmCall {
+  id: string;
+  agentId: string;
+  /** Same name as `ModuleEvent.module`, so a span can be matched to its calls. */
+  module: string;
+  tier: string;
+  model: string;
+  strategy: string;
+  attempt: number;
+  status: 'OK' | 'ERROR';
+  error?: string | null;
+  traceId?: string | null;
+  promptTokens: number;
+  cachedTokens: number;
+  completionTokens: number;
+  reasoningTokens: number;
+  estimated: boolean;
+  latencyMs: number;
+  ttftMs?: number | null;
+  /** True when `GET /api/llm-calls/{id}/payload` can serve the raw JSON. */
+  hasPayload: boolean;
+  time: string;
+}
+
+/** v0.0.30 🍊 The exact request and response JSON of one model call (never contains credentials). */
+export interface LlmCallPayload {
+  id: string;
+  agentId: string;
+  model: string;
+  request: unknown;
+  response: unknown;
+}
+
 export type TaskItemState = 'TODO' | 'DOING' | 'DONE' | 'STRUCK';
 
 export interface TaskItem {

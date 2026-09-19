@@ -150,7 +150,11 @@ class MonitorIntegrationTest {
                         SELECT text FROM module_event WHERE agent_id = :agentId AND module = 'SYSTEM' ORDER BY seq
                         """)
                 .param("agentId", id).query(String.class).list();
-        assertThat(system).containsExactly("Joined the team as " + profile.title() + ".", "Paused.", "Resumed.");
+        // v0.0.30 🍊 Pause and interrupt also report a SYSTEM span that ends CANCELLED, so the trace shows
+        // exactly what a human stopped and when.
+        assertThat(system).containsExactly("Joined the team as " + profile.title() + ".", "Paused.",
+                "Pause requested by a human.", "Stopped: Paused by a human", "Resumed.",
+                "Interrupt requested by a human.", "Stopped: Interrupted by a human");
     }
 
     /** v0.0.12 🍊 Hires a researcher into the room. */

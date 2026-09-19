@@ -1,5 +1,6 @@
 import { formatFullTime } from '../../lib/time';
 import type { Agent, ChatMessage, DeskState, ErrorCode, ModuleKind, TaskListView, Ticket } from '../types';
+import { recordLlmCall } from './llmCalls';
 import type { MockServer } from './server';
 import { TIER_MODELS, tierOf } from './usage';
 import { chunkWords, hex, nowText, randInt, recordId, sleep } from './util';
@@ -193,7 +194,11 @@ export class MockWorld {
     if (!run || !open) return;
     const latency = randInt(300, 4200);
     const closing = text ?? `Done in ${(latency / 1000).toFixed(1)} s`;
-    const detail = { model: TIER_MODELS[tierOf(open.module)], latencyMs: latency };
+    // v0.0.30 🍊 Every finished span also leaves a recorded model call, so the Trace tab's raw-request
+    // view has real-looking JSON to inspect in the mock backend.
+    const recorded = recordLlmCall(this.server.state.llmCalls, agentId, open.module, run.traceId, closing, latency,
+      phase === 'ERROR');
+    const detail = { model: TIER_MODELS[tierOf(open.module)], latencyMs: latency, llmCallId: recorded.call.id };
     this.event(agentId, run, open.module, phase, closing, open.spanId, open.outerSpanId ?? run.rootSpanId, detail);
     if (open.outerSpanId) {
       this.event(agentId, run, 'TOOL_CALLING', phase === 'ERROR' ? 'ERROR' : phase, 'Tool batch finished', open.outerSpanId, run.rootSpanId);

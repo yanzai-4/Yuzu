@@ -1,6 +1,7 @@
 import clsx from 'clsx';
 import { useMemo, useState } from 'react';
 import { getTrace } from '../../../api/client';
+import type { ModuleEvent } from '../../../api/types';
 import { AgentAvatar } from '../../../components/Avatars';
 import { ModuleChip, PhaseChip } from '../../../components/Badge';
 import { Button } from '../../../components/Button';
@@ -12,7 +13,9 @@ import { clockTimeWithSeconds } from '../../../lib/time';
 import { useAsync } from '../../../lib/useAsync';
 import { useTraceStore } from '../../../stores/trace';
 import { closeTrace, useUiStore } from '../../../stores/ui';
+import { EventInspector } from './EventInspector';
 import { buildSpanTree, mergeTraceEvents, type SpanNode } from './spanTree';
+import { llmCallsOf, useTraceLlmCalls } from './useTraceData';
 
 function duration(ms: number): string {
   if (ms < 1000) return '<1 s';
@@ -20,8 +23,24 @@ function duration(ms: number): string {
   return s < 60 ? `${s} s` : `${Math.floor(s / 60)} m ${s % 60} s`;
 }
 
-/** v0.0.4 🍊 One span row: indentation by depth, module, title, final phase and a timeline bar. */
-function SpanRow({ span, t0, total, open, onToggle }: { span: SpanNode; t0: number; total: number; open: boolean; onToggle: () => void }) {
+/** v0.0.30 🍊 One span row: indentation by depth, module, title, final phase, timeline bar and its events. */
+function SpanRow({
+  span,
+  t0,
+  total,
+  open,
+  onToggle,
+  selectedId,
+  onSelect,
+}: {
+  span: SpanNode;
+  t0: number;
+  total: number;
+  open: boolean;
+  onToggle: () => void;
+  selectedId: string | null;
+  onSelect: (event: ModuleEvent) => void;
+}) {
   const left = total > 0 ? ((span.start - t0) / total) * 100 : 0;
   const width = total > 0 ? Math.max(2, ((span.end - span.start) / total) * 100) : 100;
   const hue = PHASE_HUES[span.finalPhase] ?? '#64748b';
@@ -42,15 +61,22 @@ function SpanRow({ span, t0, total, open, onToggle }: { span: SpanNode; t0: numb
       {open ? (
         <ul className="space-y-1 bg-surface-2 px-3 py-2" style={{ paddingLeft: 12 + span.depth * 14 + 18 }}>
           {span.events.map((e) => (
-            <li key={e.id} className="text-[11px]">
-              <div className="flex items-center gap-1.5">
+            <li key={e.id}>
+              <button
+                type="button"
+                aria-pressed={selectedId === e.id}
+                onClick={() => onSelect(e)}
+                className={clsx(
+                  'flex w-full items-center gap-1.5 rounded px-1 py-0.5 text-left text-[11px] hover:bg-surface-3',
+                  selectedId === e.id && 'bg-surface-3 ring-1 ring-accent',
+                )}
+                title="Inspect this event and its raw model call"
+              >
                 <PhaseChip phase={e.phase} />
                 <time className="font-mono text-[10px] text-ink-3">{clockTimeWithSeconds(e.time)}</time>
-                <span className="text-ink-2">{e.text}</span>
-              </div>
-              {e.detail && Object.keys(e.detail).length > 0 ? (
-                <pre className="mt-0.5 overflow-x-auto rounded bg-surface-3 px-1.5 py-1 font-mono text-[10px] text-ink-2">{JSON.stringify(e.detail)}</pre>
-              ) : null}
+                <span className="min-w-0 flex-1 truncate text-ink-2">{e.text}</span>
+                <Icon name="eye" size={11} className="shrink-0 text-ink-3" />
+              </button>
             </li>
           ))}
         </ul>
@@ -63,6 +89,8 @@ function WaterfallBody({ traceId }: { traceId: string }) {
   const fetched = useAsync(() => getTrace(traceId), traceId);
   const liveAll = useTraceStore((s) => s.events);
   const [open, setOpen] = useState<Set<string>>(() => new Set());
+  const [selected, setSelected] = useState<ModuleEvent | null>(null);
+  const { calls, loading: loadingCalls } = useTraceLlmCalls(traceId);
   const tree = useMemo(() => {
     const live = liveAll.filter((e) => e.traceId === traceId).reverse();
     return buildSpanTree(mergeTraceEvents(fetched.data ?? [], live));
@@ -102,12 +130,26 @@ function WaterfallBody({ traceId }: { traceId: string }) {
       {tree.rows.length > 0 ? (
         <ul className="overflow-hidden rounded-xl border border-line">
           {tree.rows.map((span) => (
-            <SpanRow key={span.spanId} span={span} t0={tree.t0} total={total} open={open.has(span.spanId)} onToggle={() => toggle(span.spanId)} />
+            <SpanRow
+              key={span.spanId}
+              span={span}
+              t0={tree.t0}
+              total={total}
+              open={open.has(span.spanId)}
+              onToggle={() => toggle(span.spanId)}
+              selectedId={selected?.id ?? null}
+              onSelect={(event) => setSelected((current) => (current?.id === event.id ? null : event))}
+            />
           ))}
         </ul>
       ) : fetched.loading ? null : (
         <p className="text-xs text-ink-3">No events in this trace.</p>
       )}
+      {selected ? (
+        <EventInspector event={selected} calls={llmCallsOf(selected, calls)} loadingCalls={loadingCalls} />
+      ) : tree.rows.length > 0 ? (
+        <p className="text-[11px] text-ink-3">Open a span and pick an event to see its detail and the raw model call.</p>
+      ) : null}
     </div>
   );
 }

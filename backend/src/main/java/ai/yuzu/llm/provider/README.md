@@ -10,3 +10,6 @@
 - `LlmRequest` (fully shaped body), `LlmResult` (text, finish reason, refusal, usage, latency, TTFT,
   request/response JSON for tracing), `LlmMessage`, `ResponseFormat` (none / json_object / strict
   json_schema), `StreamSink`, `ProviderEndpoint` (never prints the key), `ChatProvider`.
+- `StreamSink.guarded(sink, cancel)` (v0.0.30) — wraps a sink so every delta first checks the cancel token;
+  together with the per-line token check in the streaming loop, an interrupted answer stops at the next
+  chunk instead of streaming on (see `ai.yuzu.agent.runtime`).

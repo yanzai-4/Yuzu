@@ -3,8 +3,10 @@ import {
   interruptAgent,
   pauseAgent,
   resumeAgent,
+  resumeAllAgents,
   retireAgent,
   seedDemo,
+  stopAllAgents,
   updateAgent,
 } from '../../api/client';
 import { ApiRequestError } from '../../api/http';
@@ -43,18 +45,52 @@ export async function patchAgent(agentId: string, body: UpdateAgentRequest): Pro
   }
 }
 
-/** v0.0.4 🍊 Pauses, resumes or interrupts an agent and applies the returned desk status. */
+/**
+ * v0.0.30 🍊 Pauses, resumes or interrupts an agent: the new state is applied optimistically (the desk
+ * reacts instantly), the server's status replaces it on success, and a failure rolls the desk back. The
+ * failure toast comes from the HTTP layer, which reports every failed request once.
+ */
 export async function controlAgent(agentId: string, action: 'pause' | 'resume' | 'interrupt'): Promise<boolean> {
   const call = action === 'pause' ? pauseAgent : action === 'resume' ? resumeAgent : interruptAgent;
+  const before = useRoomStore.getState().agents[agentId];
+  if (before && action !== 'interrupt') {
+    applyLocal('agent.upsert', { ...before, state: action === 'pause' ? 'PAUSED' : 'ACTIVE' }, agentId);
+  }
   try {
     const status = await call(agentId);
     applyLocal('agent.status', status, agentId);
-    const agent = useRoomStore.getState().agents[agentId];
-    if (agent && action !== 'interrupt') {
-      applyLocal('agent.upsert', { ...agent, state: action === 'pause' ? 'PAUSED' : 'ACTIVE' }, agentId);
-    }
     return true;
   } catch {
+    if (before) applyLocal('agent.upsert', before, agentId);
+    return false;
+  }
+}
+
+/**
+ * v0.0.30 🍊 Stops (or resumes) every coworker of the room at once, optimistically, and confirms with a
+ * toast; a failure restores every agent the way it was.
+ */
+export async function controlRoom(action: 'stop-all' | 'resume-all'): Promise<boolean> {
+  const roomId = useRoomStore.getState().roomId;
+  const before = Object.values(useRoomStore.getState().agents);
+  const nextState = action === 'stop-all' ? 'PAUSED' : 'ACTIVE';
+  for (const agent of before) {
+    if (agent.state !== 'RETIRED') applyLocal('agent.upsert', { ...agent, state: nextState }, agent.agentId);
+  }
+  try {
+    const result = await (action === 'stop-all' ? stopAllAgents(roomId) : resumeAllAgents(roomId));
+    for (const status of result.statuses) applyLocal('agent.status', status, status.agentId);
+    pushToast({
+      tone: action === 'stop-all' ? 'info' : 'success',
+      title: action === 'stop-all' ? 'Everyone stopped' : 'Everyone is back',
+      message:
+        result.affected === 0
+          ? 'Nobody had to change: the office was already like that.'
+          : `${result.affected} coworker${result.affected === 1 ? '' : 's'} ${action === 'stop-all' ? 'stopped what they were doing.' : 'went back to work.'}`,
+    });
+    return true;
+  } catch {
+    for (const agent of before) applyLocal('agent.upsert', agent, agent.agentId);
     return false;
   }
 }

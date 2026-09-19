@@ -1,9 +1,9 @@
 package ai.yuzu.agent;
 
-import ai.yuzu.agent.runtime.AgentRuntimeManager;
+import ai.yuzu.agent.runtime.AgentControlService;
+import ai.yuzu.agent.runtime.RoomControlView;
 import ai.yuzu.common.id.AgentId;
 import ai.yuzu.common.time.NaturalTime;
-import ai.yuzu.monitor.AgentStatusBoard;
 import ai.yuzu.monitor.AgentStatusView;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -25,16 +25,13 @@ import java.util.List;
 public class AgentController {
 
     private final AgentService agents;
-    private final AgentRuntimeManager runtimes;
-    private final AgentStatusBoard statuses;
+    private final AgentControlService control;
     private final NaturalTime time;
 
-    /** v0.0.12 🍊 Injects collaborators (the monitor's status board answers pause/resume/interrupt). */
-    public AgentController(AgentService agents, AgentRuntimeManager runtimes, AgentStatusBoard statuses,
-                           NaturalTime time) {
+    /** v0.0.30 🍊 Injects collaborators (the control service answers pause / resume / interrupt / stop all). */
+    public AgentController(AgentService agents, AgentControlService control, NaturalTime time) {
         this.agents = agents;
-        this.runtimes = runtimes;
-        this.statuses = statuses;
+        this.control = control;
         this.time = time;
     }
 
@@ -69,27 +66,33 @@ public class AgentController {
         agents.retire(AgentId.of(agentId));
     }
 
-    /** v0.0.12 🍊 Pauses an agent (stops evaluating chat and running its main loop); returns its live status. */
+    /** v0.0.30 🍊 Pauses an agent (stops evaluating chat and running its main loop); returns its live status. */
     @PostMapping("/agents/{agentId}/pause")
     public AgentStatusView pause(@PathVariable String agentId) {
-        AgentId id = AgentId.of(agentId);
-        agents.setState(id, AgentProfile.State.PAUSED);
-        return statuses.status(id);
+        return control.pause(AgentId.of(agentId));
     }
 
-    /** v0.0.12 🍊 Resumes a paused agent; returns its live status. */
+    /** v0.0.30 🍊 Resumes a paused agent; returns its live status. */
     @PostMapping("/agents/{agentId}/resume")
     public AgentStatusView resume(@PathVariable String agentId) {
-        AgentId id = AgentId.of(agentId);
-        agents.setState(id, AgentProfile.State.ACTIVE);
-        return statuses.status(id);
+        return control.resume(AgentId.of(agentId));
     }
 
-    /** v0.0.12 🍊 Interrupts whatever the agent is doing right now (it stays active); returns its live status. */
+    /** v0.0.30 🍊 Interrupts whatever the agent is doing right now (it stays active); returns its live status. */
     @PostMapping("/agents/{agentId}/interrupt")
     public AgentStatusView interrupt(@PathVariable String agentId) {
-        AgentId id = AgentId.of(agentId);
-        runtimes.require(id).interrupt("interrupted by a human");
-        return statuses.status(id);
+        return control.interrupt(AgentId.of(agentId), "Interrupted by a human");
+    }
+
+    /** v0.0.30 🍊 Stops every coworker of a room at once (pause + cancel what they are doing). */
+    @PostMapping("/rooms/{roomId}/stop-all")
+    public RoomControlView stopAll(@PathVariable String roomId) {
+        return control.stopAll(roomId, "A human stopped every coworker");
+    }
+
+    /** v0.0.30 🍊 Lets every paused coworker of a room go back to work. */
+    @PostMapping("/rooms/{roomId}/resume-all")
+    public RoomControlView resumeAll(@PathVariable String roomId) {
+        return control.resumeAll(roomId);
     }
 }

@@ -66,6 +66,17 @@ export function localApiError(code: ErrorCode, message: string, details: Record<
 
 /** v0.0.4 🍊 Performs a JSON request against the backend and resolves with the typed body. */
 export async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  return (await requestWithHeaders<T>(path, options)).body;
+}
+
+/**
+ * v0.0.30 🍊 Same as {@link request}, but also hands back the response headers, for the few endpoints whose
+ * contract puts data there (the `X-Next-Cursor` paging header of the trace history).
+ */
+export async function requestWithHeaders<T>(
+  path: string,
+  options: RequestOptions = {},
+): Promise<{ body: T; headers: Headers }> {
   const method = options.method ?? 'GET';
   const url = withQuery(path, options.query);
   const headers: Record<string, string> = { Accept: 'application/json' };
@@ -101,7 +112,7 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
         });
     throw failRequest(apiError, response.status, method, path, options.silent);
   }
-  return body as T;
+  return { body: body as T, headers: response.headers };
 }
 
 /** v0.0.4 🍊 True when a value has the shape of the backend ApiError body. */

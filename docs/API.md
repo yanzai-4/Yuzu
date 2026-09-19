@@ -78,6 +78,8 @@ re-bootstrap.
 | PATCH | `/api/agents/{agentId}` | `UpdateAgentRequest` | `Agent` |
 | DELETE | `/api/agents/{agentId}` | — | `204` |
 | POST | `/api/agents/{agentId}/pause` / `resume` / `interrupt` | — | `AgentStatus` |
+| POST | `/api/rooms/{roomId}/stop-all` | — | `RoomControlResult` (pauses **and** interrupts every coworker of the room) |
+| POST | `/api/rooms/{roomId}/resume-all` | — | `RoomControlResult` (every paused coworker goes back to work) |
 | GET | `/api/agents/{agentId}/working-memory` | — | `WorkingMemoryView` |
 | GET | `/api/agents/{agentId}/tasks` | — | `TaskListView` |
 | GET | `/api/agents/{agentId}/events?cursor=&beforeSeq=&limit=100` | — | `ModuleEvent[]` (next page cursor in the `X-Next-Cursor` response header) |
@@ -102,6 +104,8 @@ re-bootstrap.
 |---|---|---|
 | GET | `/api/usage` | `UsageSnapshot` |
 | GET | `/api/traces/{traceId}` | `ModuleEvent[]` |
+| GET | `/api/traces/{traceId}/llm-calls` | `LlmCall[]` (every recorded model attempt of the trace, oldest first) |
+| GET | `/api/llm-calls/{callId}/payload` | `LlmCallPayload` (the exact request/response JSON; `NOT_FOUND` when it was never written or is larger than 4 MB) |
 | GET | `/api/sim/emails` | `Email[]` |
 | GET | `/api/sim/trades` | `Trade[]` |
 | GET | `/api/sim/portfolios` | `Portfolio[]` |
@@ -117,3 +121,14 @@ See `frontend/src/api/types.ts` (authoritative field list). Enumerations:
 - `ModuleKind`: `CHAT, SAFETY, BEHAVIOR, HIGH_RISK, TOOL_CALLING, MONITOR, MAIN, PLANNING, COGNITION,
   SUBCONSCIOUS, LEARNING, MEMORY, WM_COMPACTOR, TOOL, SYSTEM`
 - `Tier`: `IMPORTANT, DEFAULT, LIGHT`
+
+### Agent controls (v0.0.30)
+
+- `interrupt` cancels what the coworker is doing right now and leaves it **ACTIVE**; `pause` also stops it
+  from reading new messages (state `PAUSED`), `resume` puts it back to work.
+- Controls have no event type of their own. Every client converges through the events that already exist:
+  `agent.upsert` (the new `state` after pause / resume / stop-all / resume-all), `agent.status` (the live
+  desk state) and `module.event` — a `SYSTEM` span whose terminal phase is `CANCELLED` ("Stopped: …") is
+  recorded for every interrupt and pause, so the Trace tab shows exactly what a human stopped and when.
+- A cancelled model call stops streaming within one second (usually milliseconds): the blocking read is
+  interrupted and every further delta is refused.

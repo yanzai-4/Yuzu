@@ -9,7 +9,7 @@ export type TasksView = 'lists' | 'board';
 /** v0.0.26 🍊 Sub-tabs of the Sim insights tab. */
 export type SimView = 'emails' | 'trades' | 'portfolios';
 /** v0.0.26 🍊 Sub-tabs of the Trace insights tab. */
-export type TraceView = 'events' | 'incidents' | 'errors';
+export type TraceView = 'events' | 'history' | 'incidents' | 'errors';
 /** v0.0.26 🍊 Breakdown dimension of the Usage tab. */
 export type UsageDimension = 'agent' | 'module' | 'tier' | 'model';
 /** v0.0.4 🍊 Filters of the live event list ('ALL' = no filter). */
