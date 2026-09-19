@@ -3,6 +3,7 @@ import type { UsageRow, UsageSnapshot } from '../../../api/types';
 import { PersonAvatar } from '../../../components/Avatars';
 import { Button } from '../../../components/Button';
 import { SectionTitle } from '../../../components/Field';
+import { Spotlight } from '../../../components/Spotlight';
 import { Tabs } from '../../../components/Tabs';
 import { clockTimeWithSeconds } from '../../../lib/time';
 import type { PersonRef } from '../../../stores/people';
@@ -40,7 +41,9 @@ export function UsageView({ usage, person }: { usage: UsageSnapshot; person: (id
     <div className="space-y-4 p-3">
       <div className="space-y-2">
         <SectionTitle action={<span className="text-[10px] text-ink-3">as of {clockTimeWithSeconds(usage.time)}</span>}>Totals</SectionTitle>
-        <StatTiles usage={usage} />
+        <Spotlight id="insights.usage.totals">
+          <StatTiles usage={usage} />
+        </Spotlight>
       </div>
       <div className="space-y-2">
         <SectionTitle
@@ -64,8 +67,10 @@ export function UsageView({ usage, person }: { usage: UsageSnapshot; person: (id
             { id: 'model', label: 'Model' },
           ]}
         />
-        {asTable ? null : <SegmentLegend />}
-        <BreakdownChart rows={ROWS[dimension](usage)} labelOf={labelOf} asTable={asTable} />
+        <Spotlight id="insights.usage.breakdown" className="space-y-2">
+          {asTable ? null : <SegmentLegend />}
+          <BreakdownChart rows={ROWS[dimension](usage)} labelOf={labelOf} asTable={asTable} />
+        </Spotlight>
       </div>
     </div>
   );

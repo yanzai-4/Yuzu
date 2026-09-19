@@ -1,4 +1,5 @@
 import { Tabs } from '../../../components/Tabs';
+import { Spotlight } from '../../../components/Spotlight';
 import { clearErrors } from '../../../stores/trace';
 import { setTraceView, useUiStore } from '../../../stores/ui';
 import { AgentHistory } from './AgentHistory';
@@ -40,7 +41,13 @@ export function TraceTab() {
           <AgentHistory />
         ) : (
           <div className="h-full overflow-y-auto px-3 pb-3">
-            {view === 'incidents' ? <IncidentList incidents={incidents} /> : <ErrorList errors={errors} onClear={clearErrors} />}
+            {view === 'incidents' ? (
+              <Spotlight id="insights.trace.incidents">
+                <IncidentList incidents={incidents} />
+              </Spotlight>
+            ) : (
+              <ErrorList errors={errors} onClear={clearErrors} />
+            )}
           </div>
         )}
       </div>

@@ -1,4 +1,5 @@
 import { Icon } from '../../../components/Icon';
+import { Spotlight } from '../../../components/Spotlight';
 import { Tabs } from '../../../components/Tabs';
 import { setSimView, useUiStore } from '../../../stores/ui';
 import { EmailList } from './EmailList';
@@ -32,13 +33,15 @@ export function SimTab() {
           { id: 'portfolios', label: 'Portfolios', icon: 'layers' },
         ]}
       />
-      {view === 'emails' ? (
-        <EmailList emails={data.emails} />
-      ) : view === 'trades' ? (
-        <TradeTable trades={data.trades} />
-      ) : (
-        <PortfolioList portfolios={data.portfolios} />
-      )}
+      <Spotlight id="insights.sim">
+        {view === 'emails' ? (
+          <EmailList emails={data.emails} />
+        ) : view === 'trades' ? (
+          <TradeTable trades={data.trades} />
+        ) : (
+          <PortfolioList portfolios={data.portfolios} />
+        )}
+      </Spotlight>
     </div>
   );
 }

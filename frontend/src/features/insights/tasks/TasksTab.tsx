@@ -1,4 +1,5 @@
 import { EmptyState } from '../../../components/EmptyState';
+import { Spotlight } from '../../../components/Spotlight';
 import { Tabs } from '../../../components/Tabs';
 import { setTasksView, useUiStore } from '../../../stores/ui';
 import { approveList } from './taskActions';
@@ -25,7 +26,9 @@ export function TasksTab() {
         ]}
       />
       {view === 'board' ? (
-        <TicketBoard columns={board.columns} cancelled={board.cancelled} total={board.total} />
+        <Spotlight id="insights.tasks.board">
+          <TicketBoard columns={board.columns} cancelled={board.cancelled} total={board.total} />
+        </Spotlight>
       ) : cards.length === 0 ? (
         <EmptyState icon="list" title="No coworkers, no task lists">
           Hire a coworker to see its task list here.

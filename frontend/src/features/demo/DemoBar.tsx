@@ -8,7 +8,8 @@ export function DemoBar() {
   const activeId = useDemoStore((s) => s.activeStepId);
   const active = DEMO_STEPS.find((s) => s.id === activeId) ?? null;
   return (
-    <div className="shrink-0 border-b border-line bg-surface-2 px-3 py-1.5">
+    // z-[35] keeps the chips clickable above the inspector drawer (z-30) and below the modals (z-40).
+    <div className="relative z-[35] shrink-0 border-b border-line bg-surface-2 px-3 py-1.5">
       <div className="flex flex-wrap items-center gap-1.5">
         <span className="mr-1 text-[10px] font-bold tracking-wider text-ink-3 uppercase">Tour</span>
         {DEMO_STEPS.map((step) => {

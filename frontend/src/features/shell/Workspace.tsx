@@ -1,5 +1,6 @@
 import { useRoomStream } from '../../api/useRoomStream';
 import { PaneBoundary } from '../../components/PaneBoundary';
+import { Spotlight } from '../../components/Spotlight';
 import { Toaster } from '../../components/Toaster';
 import { useMediaQuery } from '../../lib/useMediaQuery';
 import { useConnectionStore } from '../../stores/connection';
@@ -38,10 +39,14 @@ export function Workspace() {
       ) : wide ? (
         <main className="grid min-h-0 flex-1 grid-cols-[minmax(300px,1fr)_minmax(420px,1.4fr)_minmax(330px,1.05fr)] gap-3 p-3">
           <PaneBoundary name="Chat">
-            <ChatPane />
+            <Spotlight id="chat" className="flex min-h-0 flex-1 flex-col">
+              <ChatPane />
+            </Spotlight>
           </PaneBoundary>
           <PaneBoundary name="Office">
-            <OfficePane />
+            <Spotlight id="office" className="flex min-h-0 flex-1 flex-col">
+              <OfficePane />
+            </Spotlight>
           </PaneBoundary>
           <PaneBoundary name="Insights">
             <InsightsPane />

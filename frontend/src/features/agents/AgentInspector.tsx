@@ -5,6 +5,7 @@ import { CitrusAvatar } from '../../components/citrus/CitrusAvatar';
 import { Drawer } from '../../components/Drawer';
 import { SectionTitle } from '../../components/Field';
 import { Icon } from '../../components/Icon';
+import { Spotlight } from '../../components/Spotlight';
 import { DESK_STATE_META } from '../../lib/colors';
 import { clockTime } from '../../lib/time';
 import { useRoomStore } from '../../stores/room';
@@ -109,9 +110,11 @@ function InspectorBody({ agent, status }: { agent: Agent; status: AgentStatus | 
       <Section title="Limits">
         <LimitsSection agent={agent} />
       </Section>
-      <Section title="Working memory">
-        <WorkingMemorySection agentId={agent.agentId} />
-      </Section>
+      <Spotlight id="inspector.workingMemory">
+        <Section title="Working memory">
+          <WorkingMemorySection agentId={agent.agentId} />
+        </Section>
+      </Spotlight>
       <Section title="Recent activity">
         <RecentActivitySection agentId={agent.agentId} />
       </Section>

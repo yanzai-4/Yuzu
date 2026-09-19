@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { Virtuoso } from 'react-virtuoso';
 import type { ModuleEvent } from '../../../api/types';
 import { EmptyState } from '../../../components/EmptyState';
+import { Spotlight } from '../../../components/Spotlight';
 import { usePeople } from '../../../stores/selectors';
 import { clearTraceEvents, setTracePaused, TRACE_CAP } from '../../../stores/trace';
 import { openTrace, setTraceFilter, useUiStore } from '../../../stores/ui';
@@ -42,7 +43,9 @@ export function EventStream() {
             </EmptyState>
           </div>
         ) : (
-          <Virtuoso className="h-full" data={events} computeItemKey={(_, e) => e.id} itemContent={itemContent} increaseViewportBy={400} />
+          <Spotlight id="insights.trace.events" className="h-full">
+            <Virtuoso className="h-full" data={events} computeItemKey={(_, e) => e.id} itemContent={itemContent} increaseViewportBy={400} />
+          </Spotlight>
         )}
       </div>
     </div>
