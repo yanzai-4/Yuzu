@@ -6,6 +6,7 @@ import ai.yuzu.agent.AgentRepository;
 import ai.yuzu.common.error.NotFoundException;
 import ai.yuzu.common.id.AgentId;
 import ai.yuzu.internal.consciousness.ConsciousnessFactory;
+import org.springframework.beans.factory.ObjectProvider;
 import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,12 +29,15 @@ public class AgentRuntimeManager implements AgentLifecycleListener {
 
     private final AgentRepository repository;
     private final ConsciousnessFactory consciousness;
+    private final ObjectProvider<AgentComponentFactory<?>> componentFactories;
     private final Map<AgentId, AgentRuntime> runtimes = new ConcurrentHashMap<>();
 
-    /** v0.0.12 🍊 Injects the repository (boot) and the consciousness factory (per-agent pools and loops). */
-    public AgentRuntimeManager(AgentRepository repository, ConsciousnessFactory consciousness) {
+    /** v0.0.15 🍊 Injects the repository (boot), the consciousness factory and the per-agent component factories. */
+    public AgentRuntimeManager(AgentRepository repository, ConsciousnessFactory consciousness,
+                               ObjectProvider<AgentComponentFactory<?>> componentFactories) {
         this.repository = repository;
         this.consciousness = consciousness;
+        this.componentFactories = componentFactories;
     }
 
     /** v0.0.6 🍊 Starts a runtime for every present agent once the application is ready. */
@@ -84,10 +88,12 @@ public class AgentRuntimeManager implements AgentLifecycleListener {
         }
     }
 
-    /** v0.0.12 🍊 Builds a runtime with its own consciousness. */
+    /** v0.0.15 🍊 Builds a runtime with its own consciousness and components. */
     private AgentRuntime newRuntime(AgentProfile profile) {
-        return new AgentRuntime(profile,
+        AgentRuntime runtime = new AgentRuntime(profile,
                 consciousness.create(profile.agentId(), profile.state() == AgentProfile.State.PAUSED));
+        componentFactories.orderedStream().forEach(f -> runtime.register(f.type(), f.create(profile)));
+        return runtime;
     }
 
     /** v0.0.6 🍊 Cancels all in-flight agent work on shutdown. */

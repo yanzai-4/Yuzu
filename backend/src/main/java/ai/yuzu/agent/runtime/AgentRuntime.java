@@ -7,6 +7,8 @@ import ai.yuzu.common.id.IdGen;
 import ai.yuzu.common.time.NaturalTime;
 import ai.yuzu.internal.consciousness.Consciousness;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -22,6 +24,7 @@ public final class AgentRuntime {
     private final AtomicReference<AgentProfile> profile;
     private final AtomicReference<CancelToken> cancel = new AtomicReference<>(new CancelToken());
     private final Consciousness consciousness;
+    private final Map<Class<?>, AgentComponent> components = new ConcurrentHashMap<>();
     private volatile boolean paused;
 
     /** v0.0.12 🍊 Creates the runtime for a profile with its consciousness (pool, main loop, subconscious). */
@@ -37,6 +40,20 @@ public final class AgentRuntime {
         var now = time.nowInstant();
         return new AgentContext(agentId, profile.get().roomId(), profile.get(),
                 traceId != null ? traceId : IdGen.newTraceId(), parentSpanId, cancel.get(), now, time.full(now));
+    }
+
+    /** v0.0.15 🍊 A per-agent component contributed by a feature package (chat inbox, ...). */
+    public <T extends AgentComponent> T component(Class<T> type) {
+        AgentComponent component = components.get(type);
+        if (component == null) {
+            throw new IllegalStateException("Agent " + agentId + " has no component " + type.getSimpleName());
+        }
+        return type.cast(component);
+    }
+
+    /** v0.0.15 🍊 Registers a component (done once by the runtime manager). */
+    void register(Class<?> type, AgentComponent component) {
+        components.put(type, component);
     }
 
     /** v0.0.12 🍊 The agent's consciousness (the only entry point into its pool). */
@@ -64,7 +81,7 @@ public final class AgentRuntime {
         return paused;
     }
 
-    /** v0.0.12 🍊 Replaces the profile snapshot after an edit and applies pause/resume to the main loop. */
+    /** v0.0.15 🍊 Replaces the profile snapshot, applies pause/resume and notifies components. */
     void updateProfile(AgentProfile next) {
         profile.set(next);
         boolean nowPaused = next.state() == AgentProfile.State.PAUSED;
@@ -72,6 +89,7 @@ public final class AgentRuntime {
             paused = nowPaused;
             consciousness.setPaused(nowPaused);
         }
+        components.values().forEach(c -> c.onProfileChanged(next));
     }
 
     /** v0.0.6 🍊 Cancels everything in flight and installs a fresh token for future work. */
@@ -79,10 +97,11 @@ public final class AgentRuntime {
         cancel.getAndSet(new CancelToken()).cancel(reason);
     }
 
-    /** v0.0.12 🍊 Stops the agent for good (retirement or shutdown). */
+    /** v0.0.15 🍊 Stops the agent for good (retirement or shutdown), including its components. */
     void shutdown(String reason) {
         paused = true;
         consciousness.setPaused(true);
         cancel.get().cancel(reason);
+        components.values().forEach(AgentComponent::shutdown);
     }
 }
