@@ -159,6 +159,9 @@ class AgentLoadTest {
         server.defaultFor(FakeLlmServer.schema("main"), FakeLlmServer.completion(
                 "{\"thought\":\"noted, nothing to do\",\"mode\":\"END\",\"actions\":[],\"nextThought\":null}",
                 3000, 2048, 30));
+        server.defaultFor(FakeLlmServer.schema("subconscious"), FakeLlmServer.completion(
+                "{\"reasoning\":\"one pass\",\"advice\":null,\"learn\":[],\"remember\":[],"
+                        + "\"conflictUpdates\":[]}", 1800, 0, 30));
         server.defaultFor(FakeLlmServer.schema("wm_compactor"), FakeLlmServer.completion(
                 "{\"summary\":\"I read a batch of sprint updates about the Citrus Spark bottle.\"}", 2000, 0, 40));
         settings.update(LlmProvider.CUSTOM, server.baseUrl(), null);
