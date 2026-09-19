@@ -1,6 +1,6 @@
 # ai.yuzu
 
-> v0.0.7 🍊 Root package of the Yuzu backend.
+> v0.0.12 🍊 Root package of the Yuzu backend.
 
 `YuzuApplication` boots Spring Boot with virtual threads enabled. Every sub-package is a feature
 module with its own README:
@@ -19,5 +19,6 @@ module with its own README:
 | `monitor` | Module monitoring and live agent status |
 | `settings` | Console model settings and AES-GCM encrypted API keys |
 | `llm` | Model access layer (tiers, provider client, structured output, metering) |
+| `internal` | Internal agent modules: consciousness pool/main loop, subconscious, ... |
 
 More packages are added milestone by milestone (see `docs/ARCHITECTURE.md`).

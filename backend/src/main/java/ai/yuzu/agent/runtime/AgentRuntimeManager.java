@@ -5,6 +5,7 @@ import ai.yuzu.agent.AgentProfile;
 import ai.yuzu.agent.AgentRepository;
 import ai.yuzu.common.error.NotFoundException;
 import ai.yuzu.common.id.AgentId;
+import ai.yuzu.internal.consciousness.ConsciousnessFactory;
 import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,17 +27,19 @@ public class AgentRuntimeManager implements AgentLifecycleListener {
     private static final Logger log = LoggerFactory.getLogger(AgentRuntimeManager.class);
 
     private final AgentRepository repository;
+    private final ConsciousnessFactory consciousness;
     private final Map<AgentId, AgentRuntime> runtimes = new ConcurrentHashMap<>();
 
-    /** v0.0.6 🍊 Injects the repository used to start runtimes at boot. */
-    public AgentRuntimeManager(AgentRepository repository) {
+    /** v0.0.12 🍊 Injects the repository (boot) and the consciousness factory (per-agent pools and loops). */
+    public AgentRuntimeManager(AgentRepository repository, ConsciousnessFactory consciousness) {
         this.repository = repository;
+        this.consciousness = consciousness;
     }
 
     /** v0.0.6 🍊 Starts a runtime for every present agent once the application is ready. */
     @EventListener(ApplicationReadyEvent.class)
     public void startAll() {
-        repository.findAllPresent().forEach(p -> runtimes.computeIfAbsent(p.agentId(), id -> new AgentRuntime(p)));
+        repository.findAllPresent().forEach(p -> runtimes.computeIfAbsent(p.agentId(), id -> newRuntime(p)));
         log.info("🍊 Started {} agent runtimes", runtimes.size());
     }
 
@@ -59,13 +62,13 @@ public class AgentRuntimeManager implements AgentLifecycleListener {
     /** v0.0.6 🍊 Creates the runtime of a newly hired agent. */
     @Override
     public void onCreated(AgentProfile profile) {
-        runtimes.computeIfAbsent(profile.agentId(), id -> new AgentRuntime(profile));
+        runtimes.computeIfAbsent(profile.agentId(), id -> newRuntime(profile));
     }
 
     /** v0.0.6 🍊 Pushes the edited profile (and pause state) into the runtime. */
     @Override
     public void onUpdated(AgentProfile profile) {
-        AgentRuntime runtime = runtimes.computeIfAbsent(profile.agentId(), id -> new AgentRuntime(profile));
+        AgentRuntime runtime = runtimes.computeIfAbsent(profile.agentId(), id -> newRuntime(profile));
         runtime.updateProfile(profile);
         if (profile.state() == AgentProfile.State.PAUSED) {
             runtime.interrupt("paused");
@@ -79,6 +82,12 @@ public class AgentRuntimeManager implements AgentLifecycleListener {
         if (runtime != null) {
             runtime.shutdown("retired");
         }
+    }
+
+    /** v0.0.12 🍊 Builds a runtime with its own consciousness. */
+    private AgentRuntime newRuntime(AgentProfile profile) {
+        return new AgentRuntime(profile,
+                consciousness.create(profile.agentId(), profile.state() == AgentProfile.State.PAUSED));
     }
 
     /** v0.0.6 🍊 Cancels all in-flight agent work on shutdown. */
