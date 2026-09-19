@@ -68,11 +68,12 @@ public class FakePortfolio {
         return portfolios.find(agentId);
     }
 
-    /** v0.0.11 🍊 Executes at the current price; hard limit → BLOCKED + PERMISSION_DENIED, no cash/shares → REJECTED + CONFLICT. */
+    /** v0.0.23 🍊 Executes at the current price; hard limit → BLOCKED, above auto-approve → PENDING_APPROVAL, no cash/shares → REJECTED. */
     public Trade executeTrade(AgentId agentId, String symbol, Trade.Side side, BigDecimal qty) {
         Order order = Order.of(symbol, side, qty);
         PortfolioLedger.Outcome outcome;
         String blockedReason;
+        boolean awaitingApproval = false;
         ReentrantLock lock = lockFor(agentId);
         lock.lock();
         try {
@@ -80,16 +81,26 @@ public class FakePortfolio {
             Quote quote = broker.quote(order.symbol());
             BigDecimal notional = quote.notional(order.qty());
             blockedReason = hardLimitViolation(agentId, notional).orElse(null);
-            outcome = blockedReason != null
-                    ? new PortfolioLedger.Outcome(trades.insert(Trade.draft(agentId, order, quote.price(), notional,
-                    Trade.Status.BLOCKED, null, blockedReason, now)), null)
-                    : ledger.execute(agentId, order, quote.price(), notional, now);
+            if (blockedReason != null) {
+                outcome = new PortfolioLedger.Outcome(trades.insert(Trade.draft(agentId, order, quote.price(),
+                        notional, Trade.Status.BLOCKED, null, blockedReason, now)), null);
+            } else {
+                TradeRules.Decision decision = tradeDecision(agentId, notional);
+                awaitingApproval = decision.needsApproval();
+                outcome = awaitingApproval
+                        ? new PortfolioLedger.Outcome(trades.insert(Trade.draft(agentId, order, quote.price(),
+                        notional, Trade.Status.PENDING_APPROVAL, null, decision.reason(), now)), null)
+                        : ledger.execute(agentId, order, quote.price(), notional, now);
+            }
         } finally {
             lock.unlock();
         }
         publish(outcome);
         if (blockedReason != null) {
             throw blocked(outcome.trade(), blockedReason);
+        }
+        if (awaitingApproval) {
+            return outcome.trade();
         }
         if (!outcome.executed()) {
             throw rejected(outcome.trade());
@@ -199,6 +210,14 @@ public class FakePortfolio {
         }
         TradeRules.Decision decision = TradeRules.decide(profile.get().scope().limits(), notional);
         return decision.blocked() ? Optional.of(decision.reason()) : Optional.empty();
+    }
+
+    /** v0.0.11 🍊 The active trader's numeric verdict; callers first reject absent or unauthorized agents. */
+    private TradeRules.Decision tradeDecision(AgentId agentId, BigDecimal notional) {
+        return agents.find(agentId).filter(AgentProfile::isPresent).filter(profile ->
+                profile.scope().has(Permission.TRADE_EXECUTE)).map(profile ->
+                TradeRules.decide(profile.scope().limits(), notional)).orElseThrow(() ->
+                new IllegalStateException("A permitted trader disappeared while its trade was being checked."));
     }
 
     /** v0.0.11 🍊 The trade if it is still waiting for a decision; NOT_FOUND or CONFLICT otherwise. */

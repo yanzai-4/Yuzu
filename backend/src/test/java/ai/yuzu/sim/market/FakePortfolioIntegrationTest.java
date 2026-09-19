@@ -153,6 +153,19 @@ class FakePortfolioIntegrationTest {
                 .satisfies(trade -> assertThat(trade.status()).isEqualTo(Trade.Status.BLOCKED));
     }
 
+    /** v0.0.11 🍊 A direct request above auto-approve becomes pending; only approvePending may settle it. */
+    @Test
+    void directHighValueTradeCannotBypassHumanApproval() {
+        AgentProfile analyst = analyst(50_000, 100);
+        Trade pending = portfolio.executeTrade(analyst.agentId(), "CITR", BUY, new BigDecimal("3"));
+
+        assertThat(pending.status()).isEqualTo(Trade.Status.PENDING_APPROVAL);
+        assertThat(pending.reason()).contains("needs a human approval");
+        assertThat(portfolio.findPortfolio(analyst.agentId())).isEmpty();
+        assertThat(portfolio.approvePending(pending.id()).status()).isEqualTo(Trade.Status.EXECUTED);
+        assertThat(portfolio.portfolio(analyst.agentId()).quantityOf("CITR")).isEqualByComparingTo("3");
+    }
+
     /** v0.0.11 🍊 A PENDING_APPROVAL trade executes when approved, exactly once. */
     @Test
     void pendingTradeIsExecutedOnApproval() {

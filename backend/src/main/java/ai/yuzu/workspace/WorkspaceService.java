@@ -37,8 +37,9 @@ public class WorkspaceService {
                 existing.ensureTree();
                 return existing;
             }
+            WorkspacePathGuard.requireDirectory(agentId, base, "workspace-root");
             Path root = base.resolve(agentId.value());
-            AgentWorkspace.createTree(root);
+            AgentWorkspace.createTree(agentId, root);
             AgentWorkspace created = new AgentWorkspace(agentId, root, quota, time);
             AgentWorkspace raced = open.putIfAbsent(agentId, created);
             return raced != null ? raced : created;

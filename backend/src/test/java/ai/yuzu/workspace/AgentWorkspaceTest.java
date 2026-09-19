@@ -3,11 +3,13 @@ package ai.yuzu.workspace;
 import ai.yuzu.common.error.BadRequestException;
 import ai.yuzu.common.error.NotFoundException;
 import ai.yuzu.common.error.PermissionDeniedException;
+import ai.yuzu.common.error.SandboxViolationException;
 import ai.yuzu.common.error.ToolExecutionException;
 import ai.yuzu.common.id.AgentId;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.springframework.util.FileSystemUtils;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -52,6 +54,30 @@ class AgentWorkspaceTest {
         assertThat(other.list("").entries()).extracting(WorkspaceEntry::name)
                 .containsExactly("code", "files", "llm", "memory", "tool-outputs", "web");
         assertThat(service.forAgent(AgentId.of("agent-b0b0"))).isSameAs(other);
+    }
+
+    /** v0.0.11 🍊 A configured workspace root that is a link never receives an agent tree through its target. */
+    @Test
+    void linkedConfiguredWorkspaceRootIsRejectedBeforeAnyFolderIsCreated() throws IOException {
+        Path outside = Files.createDirectory(base.resolve("outside"));
+        Path linkedBase = base.resolve("linked-workspaces");
+        Files.createSymbolicLink(linkedBase, outside);
+        WorkspaceService isolated = WorkspaceFixture.service(linkedBase, id -> 64L << 20);
+
+        assertThatThrownBy(() -> isolated.forAgent(AgentId.of("agent-cafe")))
+                .isInstanceOf(SandboxViolationException.class);
+        assertThat(outside).isEmptyDirectory();
+    }
+
+    /** v0.0.11 🍊 A pre-planted agent-root link is refused before standard folders can escape into its target. */
+    @Test
+    void linkedAgentRootIsRejectedBeforeAnyFolderIsCreated() throws IOException {
+        Path outside = Files.createDirectory(base.resolve("outside"));
+        AgentId agent = AgentId.of("agent-cafe");
+        Files.createSymbolicLink(base.resolve(agent.value()), outside);
+
+        assertThatThrownBy(() -> service.forAgent(agent)).isInstanceOf(SandboxViolationException.class);
+        assertThat(outside).isEmptyDirectory();
     }
 
     /** v0.0.11 🍊 A deleted tree is recreated on the next lookup. */
@@ -173,6 +199,81 @@ class AgentWorkspaceTest {
         workspace.append("files/log.csv", "x".repeat(AgentWorkspace.MAX_WRITE_BYTES));
         workspace.append("files/log.csv", "y".repeat(AgentWorkspace.MAX_WRITE_BYTES));
         assertThat(workspace.stat("files/log.csv").sizeBytes()).isGreaterThan(2L * AgentWorkspace.MAX_WRITE_BYTES);
+    }
+
+    /** v0.0.11 🍊 Readers see a complete old append or complete new append, never a partly grown live file. */
+    @Test
+    void appendsAreAtomicForConcurrentReaders() throws Exception {
+        String seed = "seed\n";
+        String addition = "z".repeat(256 * 1024);
+        workspace.writeText("files/append-atomic.txt", seed);
+        Path file = workspace.root().resolve("files/append-atomic.txt");
+        AtomicBoolean stop = new AtomicBoolean();
+        List<Integer> observedLengths = new CopyOnWriteArrayList<>();
+        Thread reader = Thread.ofPlatform().start(() -> {
+            while (!stop.get()) {
+                try {
+                    observedLengths.add(Files.readString(file).length());
+                } catch (IOException e) {
+                    observedLengths.add(-1);
+                }
+            }
+        });
+        for (int i = 1; i <= 30; i++) {
+            workspace.append("files/append-atomic.txt", addition);
+        }
+        stop.set(true);
+        reader.join();
+
+        assertThat(observedLengths).isNotEmpty();
+        assertThat(observedLengths).allSatisfy(length -> {
+            assertThat(length - seed.length()).isGreaterThanOrEqualTo(0);
+            assertThat((length - seed.length()) % addition.length()).isZero();
+        });
+        assertThat(tempFiles(file.getParent())).isEmpty();
+    }
+
+    /** v0.0.11 🍊 Concurrent replacement of a writable parent never lets a write create files in the link target. */
+    @Test
+    void concurrentParentSwapsNeverWriteOutsideTheWorkspace() throws Exception {
+        Path files = workspace.root().resolve("files");
+        Path parked = workspace.root().resolve("files-parked");
+        Path outside = Files.createDirectory(base.resolve("outside"));
+        AtomicBoolean stop = new AtomicBoolean();
+        Thread swapper = Thread.ofPlatform().start(() -> {
+            while (!stop.get()) {
+                try {
+                    Files.move(files, parked);
+                    Files.createSymbolicLink(files, outside);
+                    Thread.yield();
+                    Files.deleteIfExists(files);
+                    Files.move(parked, files);
+                } catch (IOException ignored) {
+                    // The writer may observe either safe directory state; the test only rejects an outside write.
+                }
+            }
+        });
+        try {
+            for (int i = 0; i < 1_000; i++) {
+                try {
+                    workspace.writeText("files/race-" + i + ".txt", "inside");
+                } catch (RuntimeException ignored) {
+                    // A changing parent may safely reject an operation; it must never redirect it.
+                }
+            }
+        } finally {
+            stop.set(true);
+            swapper.join();
+            if (Files.isSymbolicLink(files)) {
+                Files.delete(files);
+            }
+            if (Files.exists(parked) && !Files.exists(files)) {
+                Files.move(parked, files);
+            } else if (Files.exists(parked)) {
+                FileSystemUtils.deleteRecursively(parked);
+            }
+        }
+        assertThat(outside).isEmptyDirectory();
     }
 
     /** v0.0.11 🍊 Generic writes only go to files/, code/, web/ and memory/; platform folders are read-only. */

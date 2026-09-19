@@ -21,6 +21,7 @@ import java.nio.file.LinkOption;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.NotDirectoryException;
 import java.nio.file.Path;
+import java.nio.file.SecureDirectoryStream;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -221,7 +222,7 @@ public final class AgentWorkspace {
             Path target = prepareParent(rel, path);
             long previous = replaceableSize(rel, path, target);
             reserve(rel, bytes.length - previous);
-            AtomicFiles.write(target, bytes);
+            writeAtomically(rel, path, target, bytes);
             usage.invalidate();
             return entry(rel, target);
         } catch (IOException e) {
@@ -248,7 +249,7 @@ public final class AgentWorkspace {
                 }
             }
             reserve(rel, bytes.length);
-            AtomicFiles.append(target, bytes);
+            appendAtomically(rel, path, target, bytes);
             usage.invalidate();
             return entry(rel, target);
         } catch (IOException e) {
@@ -300,7 +301,7 @@ public final class AgentWorkspace {
                 throw new ToolExecutionException("Could not find a free file name for the tool output.");
             }
             reserve(rel, bytes.length);
-            AtomicFiles.write(target, bytes);
+            writeAtomically(rel, rel, target, bytes);
             usage.invalidate();
             return rel;
         } catch (IOException e) {
@@ -328,7 +329,7 @@ public final class AgentWorkspace {
         try {
             Path target = prepareParent(rel, rel);
             replaceableSize(rel, rel, target);
-            AtomicFiles.write(target, bytes);
+            writeAtomically(rel, rel, target, bytes);
             return rel;
         } catch (IOException e) {
             throw ioFailure("write", rel, e);
@@ -371,23 +372,45 @@ public final class AgentWorkspace {
     /** v0.0.11 🍊 Recreates the folder tree if the root disappeared (called on every workspace lookup). */
     void ensureTree() throws IOException {
         if (!Files.isDirectory(root, LinkOption.NOFOLLOW_LINKS)) {
-            createTree(root);
+            createTree(agentId, root);
         }
     }
 
     /** v0.0.11 🍊 Creates the agent root and every standard folder (idempotent). */
-    static void createTree(Path root) throws IOException {
-        Files.createDirectories(root);
+    static void createTree(AgentId agentId, Path root) throws IOException {
+        WorkspacePathGuard.requireDirectory(agentId, root, "workspace root");
         for (WorkspaceArea area : WorkspaceArea.values()) {
-            Files.createDirectories(root.resolve(area.dir()));
+            WorkspacePathGuard.requireDirectory(agentId, root.resolve(area.dir()), area.dir() + " folder");
         }
     }
 
     /** v0.0.11 🍊 Checks the path, creates missing parent folders, then checks again (nothing became a link meanwhile). */
     private Path prepareParent(String rel, String requested) throws IOException {
         Path target = guard.check(rel, requested);
-        Files.createDirectories(target.getParent());
+        WorkspacePathGuard.requireDirectory(agentId, target.getParent(), "workspace parent folder");
         return guard.check(rel, requested);
+    }
+
+    /** v0.0.11 🍊 Replaces through a no-follow parent handle, so a swapped path cannot redirect the staging file. */
+    private void writeAtomically(String rel, String requested, Path target, byte[] bytes) throws IOException {
+        try (SecureDirectoryStream<Path> parent = guard.openParent(rel, requested).orElse(null)) {
+            if (parent == null) {
+                AtomicFiles.write(guard.resolveInsideRoot(rel, requested), bytes);
+                return;
+            }
+            AtomicFiles.write(parent, target.getFileName(), bytes);
+        }
+    }
+
+    /** v0.0.11 🍊 Appends by atomically replacing a staged full copy through a no-follow parent handle. */
+    private void appendAtomically(String rel, String requested, Path target, byte[] bytes) throws IOException {
+        try (SecureDirectoryStream<Path> parent = guard.openParent(rel, requested).orElse(null)) {
+            if (parent == null) {
+                AtomicFiles.append(guard.resolveInsideRoot(rel, requested), bytes);
+                return;
+            }
+            AtomicFiles.append(parent, target.getFileName(), bytes);
+        }
     }
 
     /** v0.0.11 🍊 Size of an existing regular file that is about to be replaced (0 when missing). */

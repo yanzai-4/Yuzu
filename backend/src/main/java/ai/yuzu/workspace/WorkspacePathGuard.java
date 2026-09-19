@@ -10,7 +10,11 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
+import java.nio.file.SecureDirectoryStream;
+import java.nio.file.DirectoryStream;
+import java.nio.file.NotDirectoryException;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.Optional;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.regex.Pattern;
@@ -39,6 +43,21 @@ final class WorkspacePathGuard {
             throw violation("", "symbolic-link", "The workspace root of " + agentId + " is a symbolic link.");
         }
         this.realRoot = root.toRealPath();
+    }
+
+    /** v0.0.11 🍊 Creates one configured/tree directory only after rejecting a pre-existing link or non-directory. */
+    static void requireDirectory(AgentId agentId, Path directory, String label) throws IOException {
+        BasicFileAttributes attrs = attributesOrNull(directory);
+        if (attrs == null) {
+            Files.createDirectories(directory);
+            attrs = attributesOrNull(directory);
+        }
+        if (attrs != null && attrs.isSymbolicLink()) {
+            throw sandbox(agentId, label, "symbolic-link", "The " + label + " is a symbolic link.");
+        }
+        if (attrs == null || !attrs.isDirectory()) {
+            throw new NotDirectoryException("The " + label + " is not a directory.");
+        }
     }
 
     /** v0.0.11 🍊 Lexically validates a requested path and returns it normalized ("" is the workspace root). */
@@ -91,6 +110,14 @@ final class WorkspacePathGuard {
 
     /** v0.0.11 🍊 File-system checks of a normalized path: no link on any existing component, real path inside the root. */
     Path check(String normalized, String requested) {
+        BasicFileAttributes rootAttrs = attributesOrNull(root);
+        if (rootAttrs == null || !rootAttrs.isDirectory()) {
+            throw new ToolExecutionException("The workspace root changed while it was being checked; please retry.")
+                    .with("agentId", agentId.value()).with("path", printable(requested)).forAgent(agentId.value());
+        }
+        if (rootAttrs.isSymbolicLink()) {
+            throw violation(requested, "symbolic-link", "The workspace root of " + agentId + " is a symbolic link.");
+        }
         Path deepestExisting = root;
         if (!normalized.isEmpty()) {
             Path current = root;
@@ -119,6 +146,47 @@ final class WorkspacePathGuard {
         return normalized.isEmpty() ? root : root.resolve(normalized);
     }
 
+    /** v0.0.11 🍊 Opens an existing target parent by no-follow directory handles, anchored at the workspace root. */
+    Optional<SecureDirectoryStream<Path>> openParent(String normalized, String requested) throws IOException {
+        Path parent = normalized.isEmpty() ? root : root.resolve(normalized).getParent();
+        if (parent == null) {
+            throw new IOException("The workspace root has no parent directory.");
+        }
+        check(normalized, requested);
+        DirectoryStream<Path> opened = Files.newDirectoryStream(root);
+        if (!(opened instanceof SecureDirectoryStream<Path> current)) {
+            opened.close();
+            return Optional.empty();
+        }
+        try {
+            Path relativeParent = root.relativize(parent);
+            for (Path segment : relativeParent) {
+                SecureDirectoryStream<Path> next = current.newDirectoryStream(segment, LinkOption.NOFOLLOW_LINKS);
+                current.close();
+                current = next;
+            }
+            return Optional.of(current);
+        } catch (IOException | RuntimeException e) {
+            current.close();
+            throw e;
+        }
+    }
+
+    /** v0.0.23 🍊 Fallback for file systems without no-follow handles: pins the parent's real path inside the root. */
+    Path resolveInsideRoot(String normalized, String requested) throws IOException {
+        Path target = check(normalized, requested);
+        Path parent = target.getParent();
+        if (parent == null) {
+            throw new IOException("The workspace root has no parent directory.");
+        }
+        Path realParent = parent.toRealPath();
+        if (!realParent.startsWith(root.toRealPath())) {
+            throw violation(normalized, "symbolic-link",
+                    "The folder holding " + requested + " left the workspace while it was being written.");
+        }
+        return realParent.resolve(target.getFileName());
+    }
+
     /** v0.0.11 🍊 Builds a SANDBOX_VIOLATION carrying the agent, the (printable) requested path and a reason code. */
     SandboxViolationException violation(String requested, String reason, String message) {
         return (SandboxViolationException) new SandboxViolationException(message)
@@ -136,6 +204,12 @@ final class WorkspacePathGuard {
             // Missing, or a parent is not a folder: nothing further down can be a link; the operation reports it.
             return null;
         }
+    }
+
+    /** v0.0.11 🍊 A sandbox failure that is available before a guard instance exists. */
+    private static SandboxViolationException sandbox(AgentId agentId, String path, String reason, String message) {
+        return (SandboxViolationException) new SandboxViolationException(message).with("agentId", agentId.value())
+                .with("path", printable(path)).with("reason", reason).forAgent(agentId.value());
     }
 
     /** v0.0.11 🍊 Workspace-relative display form of an absolute path under the root. */
