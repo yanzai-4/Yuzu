@@ -124,6 +124,42 @@ class SimControllerIntegrationTest {
         assertThat(snapshot.path("portfolios")).hasSize(1);
     }
 
+    /** v0.0.11 🍊 Several agents' e-mails and trades are merged newest first before the limit applies. */
+    @Test
+    void roomFeedsMergeAgentsNewestFirst() throws Exception {
+        String room = TestRooms.create(jdbc);
+        AgentProfile first = agents.create(room, new CreateAgentRequest(Role.CUSTOMER_LIAISON, null, null, null, null,
+                null));
+        AgentProfile second = agents.create(room, new CreateAgentRequest(Role.CUSTOMER_LIAISON, null, null, null, null,
+                null));
+        mailbox.inbox(first.agentId());
+        mailbox.inbox(second.agentId());
+        mailbox.send(first.agentId(), null, List.of("dana.kim@acme.test"), "Newest from first", "Body.");
+        mailbox.send(second.agentId(), null, List.of("li.wei@acme.test"), "Newest from second", "Body.");
+
+        JsonNode all = getJson("/api/sim/emails?roomId=" + room);
+        assertThat(all).hasSize(12);
+        assertThat(all.get(0).path("subject").asText()).isEqualTo("Newest from second");
+        assertThat(all.get(1).path("subject").asText()).isEqualTo("Newest from first");
+        JsonNode limited = getJson("/api/sim/emails?roomId=" + room + "&limit=3");
+        assertThat(limited).hasSize(3);
+        assertThat(limited.get(0).path("id").asText()).isEqualTo(all.get(0).path("id").asText());
+        Set<String> owners = new HashSet<>();
+        all.forEach(email -> owners.add(email.path("agentId").asText()));
+        assertThat(owners).containsExactlyInAnyOrder(first.agentId().value(), second.agentId().value());
+
+        AgentProfile analystA = agents.create(room, new CreateAgentRequest(Role.FINANCE_ANALYST, null, null, null,
+                null, new Limits.LimitsPatch(null, null, 50_000.0, 50_000.0, null)));
+        AgentProfile analystB = agents.create(room, new CreateAgentRequest(Role.FINANCE_ANALYST, null, null, null,
+                null, new Limits.LimitsPatch(null, null, 50_000.0, 50_000.0, null)));
+        portfolio.executeTrade(analystA.agentId(), "LIME", Trade.Side.BUY, BigDecimal.ONE);
+        portfolio.executeTrade(analystB.agentId(), "PEEL", Trade.Side.BUY, BigDecimal.ONE);
+        portfolio.executeTrade(analystA.agentId(), "ZEST", Trade.Side.BUY, BigDecimal.ONE);
+        JsonNode trades = getJson("/api/sim/trades?roomId=" + room + "&limit=2");
+        assertThat(trades).extracting(trade -> trade.path("symbol").asText()).containsExactly("ZEST", "PEEL");
+        assertThat(getJson("/api/sim/portfolios?roomId=" + room)).hasSize(2);
+    }
+
     /** v0.0.11 🍊 A trading agent that never traded shows its virtual $10,000 account; others are not listed. */
     @Test
     void tradingAgentsShowAStartingAccount() throws Exception {
