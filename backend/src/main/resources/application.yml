@@ -1,4 +1,4 @@
-# v0.0.2 🍊 Default configuration of the Yuzu backend. Local overrides go to application-local.yml (gitignored).
+# v0.0.7 🍊 Default configuration of the Yuzu backend. Local overrides go to application-local.yml (gitignored).
 server:
   port: 8080
   shutdown: graceful
@@ -43,6 +43,8 @@ yuzu:
   zone: America/Los_Angeles
   # Root directory of the per-agent workspaces (large storage).
   workspace-root: ../workspaces
+  # Directory of the master key that encrypts stored API keys (outside the repository; gitignored).
+  secret-dir: ../data/secret
   # Origins allowed to call the API directly (the Vite dev server proxies, so this is rarely needed).
   cors-origins:
     - http://localhost:5173

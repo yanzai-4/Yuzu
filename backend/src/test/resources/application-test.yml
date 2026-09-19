@@ -6,3 +6,4 @@ spring:
     clean-disabled: false
 yuzu:
   workspace-root: ../data/test-workspaces
+  secret-dir: ../data/test-secret
