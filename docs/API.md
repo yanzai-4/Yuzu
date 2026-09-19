@@ -80,7 +80,7 @@ re-bootstrap.
 | POST | `/api/agents/{agentId}/pause` / `resume` / `interrupt` | — | `AgentStatus` |
 | GET | `/api/agents/{agentId}/working-memory` | — | `WorkingMemoryView` |
 | GET | `/api/agents/{agentId}/tasks` | — | `TaskListView` |
-| GET | `/api/agents/{agentId}/events?beforeSeq=&limit=100` | — | `ModuleEvent[]` |
+| GET | `/api/agents/{agentId}/events?cursor=&beforeSeq=&limit=100` | — | `ModuleEvent[]` (next page cursor in the `X-Next-Cursor` response header) |
 
 ### Tickets and approvals
 | Method | Path | Body | Returns |
