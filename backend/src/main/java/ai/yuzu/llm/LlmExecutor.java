@@ -61,6 +61,9 @@ public class LlmExecutor {
         int learnSteps = 0;
         int transportRetries = 0;
         int attempt = 0;
+        // Cooperative cancellation: an interrupted stream stops at the next delta (the blocking read is
+        // aborted by the token's thread interrupt), so "stop talking" takes effect in milliseconds.
+        StreamSink guarded = StreamSink.guarded(sink, cancel);
         while (true) {
             cancel.throwIfCancelled();
             ModelCapabilities caps = capabilities.get(call.endpoint(), call.tier().model());
@@ -72,7 +75,7 @@ public class LlmExecutor {
             long started = System.nanoTime();
             try {
                 LlmResult result = call.stream()
-                        ? provider.stream(call.endpoint(), request, sink, cancel)
+                        ? provider.stream(call.endpoint(), request, guarded, cancel)
                         : provider.complete(call.endpoint(), request, cancel);
                 observer.onSuccess(request, result, attempt);
                 return result;

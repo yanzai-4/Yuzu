@@ -13,6 +13,7 @@
   retire (frees the name). Caffeine caches by id and room; also the agent `RoomMemberSource`.
   Notifies `AgentLifecycleListener`s and publishes `agent.upsert` / `agent.removed`.
 - `AgentRepository` — the `agent` registry table.
-- `AgentController` — `/api/roles`, `/api/rooms/{roomId}/agents`, `/api/agents/{id}` (PATCH/DELETE) and
-  `/pause`, `/resume`, `/interrupt`.
+- `AgentController` — `/api/roles`, `/api/rooms/{roomId}/agents`, `/api/agents/{id}` (PATCH/DELETE),
+  `/pause`, `/resume`, `/interrupt` and the room-wide `/api/rooms/{roomId}/stop-all` and `/resume-all`.
+  Every control call is delegated to `agent.runtime.AgentControlService` (v0.0.30).
 - `AgentSnapshotContributor` — agents and their statuses for `/api/bootstrap`.

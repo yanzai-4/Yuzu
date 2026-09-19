@@ -126,6 +126,12 @@ public class OpenAiCompatibleProvider implements ChatProvider {
                 Iterator<String> it = lines.iterator();
                 while (it.hasNext()) {
                     String line = it.next();
+                    // Cooperative stop: a human interrupt ends the answer at the next chunk, even if the
+                    // provider only sends keep-alives or reasoning lines that never reach the sink. Only the
+                    // token is checked here; a bare thread interrupt belongs to the stall watchdog below.
+                    if (cancel.isCancelled()) {
+                        throw new CancelledException(cancel.reason());
+                    }
                     lastActivity.set(System.nanoTime());
                     if (!line.startsWith("data:")) {
                         continue;

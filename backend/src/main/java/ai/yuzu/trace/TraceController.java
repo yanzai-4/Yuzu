@@ -18,10 +18,12 @@ import java.util.List;
 public class TraceController {
 
     private final TraceQueryService queries;
+    private final LlmCallInspector llmCalls;
 
-    /** v0.0.12 🍊 Injects the query service. */
-    public TraceController(TraceQueryService queries) {
+    /** v0.0.30 🍊 Injects the query service and the raw model-call inspector. */
+    public TraceController(TraceQueryService queries, LlmCallInspector llmCalls) {
         this.queries = queries;
+        this.llmCalls = llmCalls;
     }
 
     /** v0.0.26 🍊 Response header carrying the cursor of the next (older) page; absent when the history is exhausted. */
@@ -51,5 +53,17 @@ public class TraceController {
     @GetMapping("/traces/{traceId}")
     public List<ModuleEventView> trace(@PathVariable String traceId) {
         return queries.trace(traceId);
+    }
+
+    /** v0.0.30 🍊 {@code GET /api/traces/{traceId}/llm-calls}: the model calls of the trace, oldest first. */
+    @GetMapping("/traces/{traceId}/llm-calls")
+    public List<LlmCallView> traceLlmCalls(@PathVariable String traceId) {
+        return llmCalls.ofTrace(traceId);
+    }
+
+    /** v0.0.30 🍊 {@code GET /api/llm-calls/{callId}/payload}: the exact request and response JSON of one call. */
+    @GetMapping("/llm-calls/{callId}/payload")
+    public LlmCallPayloadView llmCallPayload(@PathVariable String callId) {
+        return llmCalls.payload(callId);
     }
 }
