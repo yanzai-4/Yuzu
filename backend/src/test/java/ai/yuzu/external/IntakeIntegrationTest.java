@@ -24,6 +24,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.simple.JdbcClient;
 
 import java.util.List;
@@ -43,6 +44,7 @@ class IntakeIntegrationTest {
         static final List<PoolMessage> RECEIVED = new CopyOnWriteArrayList<>();
 
         @Bean
+        @Primary
         MainRunHandler capturingMainRunHandler() {
             return (agent, batch) -> RECEIVED.addAll(batch);
         }

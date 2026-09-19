@@ -1,6 +1,6 @@
 # ai.yuzu.module
 
-> v0.0.15 🍊 The base classes every AI module is built on.
+> v0.0.17 🍊 The base classes every AI module is built on.
 
 - `AiModule<I,O>` — template method: monitor span → prompt (S0 handbook + S1 module template + schema text
   when the provider cannot enforce it, then the subclass's S2–S7, then the current time captured once per
@@ -17,3 +17,4 @@
 
 Prompt templates: `backend/src/main/resources/prompts/modules/<template>.md`.
 - `TaskStateProvider` — task-list text for prompts (implemented by the task package; `NONE` fallback).
+- `ToolCatalogProvider` — permitted-tool and full-tool catalogs for prompts (implemented by the tool registry).

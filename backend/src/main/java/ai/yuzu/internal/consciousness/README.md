@@ -1,6 +1,6 @@
 # ai.yuzu.internal.consciousness
 
-> v0.0.12 🍊 The main consciousness's pool and loop (exactly one run at a time, no lost wake-ups).
+> v0.0.17 🍊 The main consciousness: pool, single loop, the IMPORTANT-tier mind and its runs.
 
 - `ConsciousnessPool` — queue + trigger count + `running`/`paused` under one short `ReentrantLock`.
   `append` returns true when the caller must start the loop; `takeAllOrRelease` hands over the WHOLE pool
@@ -18,3 +18,14 @@
   "me (my own thought)"), text JSON-escaped so external content cannot forge an own-thought entry.
 
 Verified by `ConsciousnessConcurrencyTest` (32 threads × 1,000 messages).
+
+## The mind (v0.0.17)
+
+- `MainConsciousnessModule` (IMPORTANT tier, template `main`) — ACT / THINK / END over the whole batch, with
+  working memory, task list, profile + permitted tools, roster, actions in progress and the exact time.
+  Semantic checks: ACT needs 1–8 actions, THINK needs a next thought, END has no actions. Fallback: END.
+- `MainConsciousnessService` (the `MainRunHandler`) — records inputs (own THINK messages skipped), runs the
+  module, records the output, persists `main_run`, marks the batch consumed, then THINK → SELF message
+  (loop continues), ACT → `ActionSubmitter` (async), END → idle. After 6 THINKs the prompt says
+  "decide now"; after 8 code forces END.
+- `MindState` — per-agent THINK streak; `MainDecision`; `MainRunRepository`; `ActionSubmitter` SPI.
