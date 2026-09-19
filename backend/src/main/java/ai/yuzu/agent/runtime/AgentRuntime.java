@@ -3,6 +3,8 @@ package ai.yuzu.agent.runtime;
 import ai.yuzu.agent.AgentProfile;
 import ai.yuzu.common.concurrent.CancelToken;
 import ai.yuzu.common.id.AgentId;
+import ai.yuzu.common.id.IdGen;
+import ai.yuzu.common.time.NaturalTime;
 import ai.yuzu.internal.consciousness.Consciousness;
 
 import java.util.concurrent.atomic.AtomicReference;
@@ -28,6 +30,13 @@ public final class AgentRuntime {
         this.profile = new AtomicReference<>(profile);
         this.paused = profile.state() == AgentProfile.State.PAUSED;
         this.consciousness = consciousness;
+    }
+
+    /** v0.0.14 🍊 A fresh invocation context (new trace when traceId is null), capturing the current time once. */
+    public AgentContext context(String traceId, String parentSpanId, NaturalTime time) {
+        var now = time.nowInstant();
+        return new AgentContext(agentId, profile.get().roomId(), profile.get(),
+                traceId != null ? traceId : IdGen.newTraceId(), parentSpanId, cancel.get(), now, time.full(now));
     }
 
     /** v0.0.12 🍊 The agent's consciousness (the only entry point into its pool). */

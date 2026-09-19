@@ -44,6 +44,11 @@ public final class IdGen {
         return dataName.prefix() + "-" + owner.hex() + "-" + String.format(Locale.ROOT, "%010x", random);
     }
 
+    /** v0.0.14 🍊 New trace id (16 hex) correlating every module event caused by one stimulus. */
+    public static String newTraceId() {
+        return String.format(Locale.ROOT, "%016x", ThreadLocalRandom.current().nextLong());
+    }
+
     /** v0.0.1 🍊 True when the string matches the uniform record id format. */
     public static boolean isRecordId(String id) {
         return id != null && RECORD_FORMAT.matcher(id).matches();
