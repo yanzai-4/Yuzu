@@ -18,10 +18,11 @@ public record AgentStatusView(String agentId, String state, List<String> activeM
     public record Bubble(String module, String summary) {
     }
 
-    /** v0.0.6 🍊 Status of an agent that is not doing anything. */
+    /** v0.0.12 🍊 Status of an agent that is not doing anything (same bubble texts as the status board). */
     public static AgentStatusView idle(String agentId, boolean paused, String time) {
-        return new AgentStatusView(agentId, paused ? "PAUSED" : "IDLE", List.of(),
-                new Bubble(paused ? "Paused" : "Idle", paused ? "Taking a break." : "Waiting for something to do."),
+        return new AgentStatusView(agentId, paused ? DeskState.PAUSED.name() : DeskState.IDLE.name(), List.of(),
+                paused ? new Bubble(BubbleText.PAUSED_MODULE, BubbleText.PAUSED_SUMMARY)
+                        : new Bubble(BubbleText.IDLE_MODULE, BubbleText.IDLE_SUMMARY),
                 0, 0, time);
     }
 }
