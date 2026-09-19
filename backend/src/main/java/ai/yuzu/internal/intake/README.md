@@ -1,6 +1,6 @@
 # ai.yuzu.internal.intake
 
-> v0.0.16 🍊 The single path from the outside world into an agent's mind.
+> v0.0.22 🍊 The single path from the outside world into an agent's mind.
 
 - `IntakePipeline` — implements `ChatForwarder`. Chat: inbound safety gate (blocked → yellow notice via
   `BlockNoticeModule`) → planning ∥ cognition (parallel; they only see external information) → one EXTERNAL
@@ -12,3 +12,5 @@
 - `QuestionAnswerHandler` — v0.0.19 🍊 the `QUESTION` card handler. Free-text answers pass the inbound
   safety gate (a blocked answer becomes a yellow notice), then the answer is delivered as a
   `QuestionAnswerStimulus` with the attribution "Alice (human) answered my question card at …".
+- `NoticeService` — v0.0.22 🍊 asynchronously delivers trusted code-made notices (ticket assignments,
+  approvals and governance hints) through the same planning/cognition intake path with explicit source attribution.
