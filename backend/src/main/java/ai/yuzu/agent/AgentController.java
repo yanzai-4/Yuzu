@@ -3,6 +3,7 @@ package ai.yuzu.agent;
 import ai.yuzu.agent.runtime.AgentRuntimeManager;
 import ai.yuzu.common.id.AgentId;
 import ai.yuzu.common.time.NaturalTime;
+import ai.yuzu.monitor.AgentStatusBoard;
 import ai.yuzu.monitor.AgentStatusView;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -25,12 +26,15 @@ public class AgentController {
 
     private final AgentService agents;
     private final AgentRuntimeManager runtimes;
+    private final AgentStatusBoard statuses;
     private final NaturalTime time;
 
-    /** v0.0.6 🍊 Injects collaborators. */
-    public AgentController(AgentService agents, AgentRuntimeManager runtimes, NaturalTime time) {
+    /** v0.0.12 🍊 Injects collaborators (the monitor's status board answers pause/resume/interrupt). */
+    public AgentController(AgentService agents, AgentRuntimeManager runtimes, AgentStatusBoard statuses,
+                           NaturalTime time) {
         this.agents = agents;
         this.runtimes = runtimes;
+        this.statuses = statuses;
         this.time = time;
     }
 
@@ -65,24 +69,27 @@ public class AgentController {
         agents.retire(AgentId.of(agentId));
     }
 
-    /** v0.0.6 🍊 Pauses an agent (stops evaluating chat and running its main loop). */
+    /** v0.0.12 🍊 Pauses an agent (stops evaluating chat and running its main loop); returns its live status. */
     @PostMapping("/agents/{agentId}/pause")
     public AgentStatusView pause(@PathVariable String agentId) {
-        agents.setState(AgentId.of(agentId), AgentProfile.State.PAUSED);
-        return AgentStatusView.idle(agentId, true, time.compact(time.nowInstant()));
+        AgentId id = AgentId.of(agentId);
+        agents.setState(id, AgentProfile.State.PAUSED);
+        return statuses.status(id);
     }
 
-    /** v0.0.6 🍊 Resumes a paused agent. */
+    /** v0.0.12 🍊 Resumes a paused agent; returns its live status. */
     @PostMapping("/agents/{agentId}/resume")
     public AgentStatusView resume(@PathVariable String agentId) {
-        agents.setState(AgentId.of(agentId), AgentProfile.State.ACTIVE);
-        return AgentStatusView.idle(agentId, false, time.compact(time.nowInstant()));
+        AgentId id = AgentId.of(agentId);
+        agents.setState(id, AgentProfile.State.ACTIVE);
+        return statuses.status(id);
     }
 
-    /** v0.0.6 🍊 Interrupts whatever the agent is doing right now (it stays active). */
+    /** v0.0.12 🍊 Interrupts whatever the agent is doing right now (it stays active); returns its live status. */
     @PostMapping("/agents/{agentId}/interrupt")
     public AgentStatusView interrupt(@PathVariable String agentId) {
-        runtimes.require(AgentId.of(agentId)).interrupt("interrupted by a human");
-        return AgentStatusView.idle(agentId, false, time.compact(time.nowInstant()));
+        AgentId id = AgentId.of(agentId);
+        runtimes.require(id).interrupt("interrupted by a human");
+        return statuses.status(id);
     }
 }
