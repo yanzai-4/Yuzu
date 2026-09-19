@@ -20,6 +20,7 @@ import ai.yuzu.task.Actor;
 import ai.yuzu.task.list.TaskList;
 import ai.yuzu.task.list.TaskListService;
 import ai.yuzu.task.list.TaskOp;
+import ai.yuzu.task.list.TaskListStatus;
 import ai.yuzu.task.ticket.NewTicket;
 import ai.yuzu.task.ticket.Ticket;
 import ai.yuzu.task.ticket.TicketService;
@@ -77,6 +78,7 @@ class TaskToolsIntegrationTest {
     private AgentProfile yuzu;
     private AgentProfile kumquat;
     private AgentProfile lime;
+    private AgentProfile pomelo;
     private UserView alice;
 
     @BeforeEach
@@ -95,6 +97,9 @@ class TaskToolsIntegrationTest {
         lime = agents.createNamed(roomId,
                 new CreateAgentRequest(Role.RESEARCHER, null, null, null, List.of(Permission.CHAT_POST), null),
                 "Lime");
+        pomelo = agents.createNamed(roomId,
+                new CreateAgentRequest(Role.RESEARCHER, null, null, null,
+                        List.of(Permission.CHAT_POST, Permission.TASK_APPROVE), null), "Pomelo");
         alice = humans.join(roomId, "Alice");
     }
 
@@ -104,19 +109,19 @@ class TaskToolsIntegrationTest {
         settings.update(LlmProvider.OPENAI, null, null);
     }
 
-    /** v0.0.22 🍊 ticket_create records the human requester and assignment selected by exact room-member names. */
+    /** v0.0.22 🍊 ticket_create resolves mixed-case room-member names and records the canonical requester. */
     @Test
-    void createsAssignedTicketForNamedCoworkerAndRequester() throws Exception {
+    void createsAssignedTicketForMixedCaseCoworkerAndRequester() throws Exception {
         ToolResult result = createTool.execute(toolContext(yuzu), new TicketCreateTool.Args(
-                "Build the launch page", "Create and verify the responsive landing page.", "@Kumquat", "Alice"));
+                "Build the launch page", "Create and verify the responsive landing page.", "@kUmQuAt", "aLiCe"));
 
         assertThat(result.status()).isEqualTo(ToolResult.Status.OK);
         Ticket ticket = tickets.list(roomId).getFirst();
         assertThat(ticket.title()).isEqualTo("Build the launch page");
         assertThat(ticket.assigneeId()).isEqualTo(kumquat.agentId().value());
         assertThat(ticket.requesterName()).isEqualTo("Alice");
-        assertThat(result.output()).contains(ticket.id()).contains("Kumquat").contains("notified");
-        awaitRequestContaining("assigned ticket " + ticket.id());
+        assertThat(result.output()).contains(ticket.id()).contains("notified");
+        awaitRequestContaining("assigned ticket " + ticket.id(), "a notice from Yuzu (Project Manager)");
     }
 
     /** v0.0.22 🍊 ticket_assign changes an open ticket and its code-made notice enters the assignee's intake. */
@@ -133,7 +138,7 @@ class TaskToolsIntegrationTest {
         assertThat(assigned.status()).isEqualTo(TicketStatus.ASSIGNED);
         assertThat(assigned.assigneeId()).isEqualTo(kumquat.agentId().value());
         assertThat(result.output()).contains(open.id()).contains("Kumquat").contains("notified");
-        awaitRequestContaining("assigned ticket " + open.id());
+        awaitRequestContaining("assigned ticket " + open.id(), "a notice from Yuzu (Project Manager)");
     }
 
     /** v0.0.22 🍊 task_approve archives a finished list published by the caller and advances its linked ticket. */
@@ -155,7 +160,27 @@ class TaskToolsIntegrationTest {
         assertThat(lists.current(kumquat.agentId()).recentArchived()).first()
                 .extracting(TaskList::id).isEqualTo(list.id());
         assertThat(tickets.get(ticket.id()).status()).isEqualTo(TicketStatus.APPROVED);
-        awaitRequestContaining("approved my task list");
+        awaitRequestContaining("approved my task list", "a notice from Yuzu (Project Manager)");
+    }
+
+    /** v0.0.22 🍊 TASK_APPROVE alone cannot override the task list's publisher approval policy. */
+    @Test
+    void rejectsNonPublisherApproverAndLeavesFinishedListAndTicketAwaitingApproval() {
+        Ticket ticket = tickets.create(roomId, Actor.of(yuzu),
+                NewTicket.of("Ship prototype", "Build and test the prototype.").assignedTo(kumquat.agentId()));
+        TaskList list = lists.create(kumquat.agentId(), "Ship the prototype", Actor.of(yuzu), ticket.id(),
+                List.of("Build it", "Test it"));
+        lists.apply(kumquat.agentId(), List.of(
+                TaskOp.check(list.items().get(0).id(), "built"),
+                TaskOp.check(list.items().get(1).id(), "tested")));
+        lists.requestApproval(kumquat.agentId());
+
+        assertThatThrownBy(() -> approveTool.execute(toolContext(pomelo), new TaskApproveTool.Args("Kumquat")))
+                .isInstanceOf(PermissionDeniedException.class)
+                .hasMessageContaining("Only the publisher");
+        assertThat(lists.current(kumquat.agentId()).current()).extracting(TaskList::status)
+                .isEqualTo(TaskListStatus.AWAITING_APPROVAL);
+        assertThat(tickets.get(ticket.id()).status()).isEqualTo(TicketStatus.DONE);
     }
 
     /** v0.0.22 🍊 every task tool re-checks its permission even when invoked outside the dispatcher. */
@@ -183,11 +208,12 @@ class TaskToolsIntegrationTest {
                 deps.reporter().start(profile.agentId(), "TOOL", "test", ctx.traceId(), null));
     }
 
-    /** v0.0.22 🍊 Waits until an asynchronous code notice appears in an LLM request. */
-    private void awaitRequestContaining(String text) throws InterruptedException {
-        for (int i = 0; i < 400 && server.requests().stream().noneMatch(body -> body.contains(text)); i++) {
+    /** v0.0.22 🍊 Waits until one asynchronous code notice contains every expected detail. */
+    private void awaitRequestContaining(String... expected) throws InterruptedException {
+        for (int i = 0; i < 400 && server.requests().stream()
+                .noneMatch(body -> java.util.Arrays.stream(expected).allMatch(body::contains)); i++) {
             Thread.sleep(20);
         }
-        assertThat(server.requests()).anyMatch(body -> body.contains(text));
+        assertThat(server.requests()).anyMatch(body -> java.util.Arrays.stream(expected).allMatch(body::contains));
     }
 }
