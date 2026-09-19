@@ -153,16 +153,16 @@ class WorkspacePathGuardTest {
     /** v0.0.11 🍊 Violations name the agent, the printable requested path and a reason, never server paths. */
     @Test
     void violationDetailsNameTheAgentAndThePath() {
-        SandboxViolationException e = catchThrowableOfType(() -> workspace.readText("../../etc/passwd", 10),
-                SandboxViolationException.class);
+        SandboxViolationException e = catchThrowableOfType(SandboxViolationException.class,
+                () -> workspace.readText("../../etc/passwd", 10));
         assertThat(e.code()).isEqualTo(ErrorCode.SANDBOX_VIOLATION);
         assertThat(e.agentId()).isEqualTo("agent-a11c");
         assertThat(e.details()).containsEntry("agentId", "agent-a11c").containsEntry("path", "../../etc/passwd")
                 .containsEntry("reason", "parent-escape");
         assertThat(e.getMessage()).doesNotContain(base.toString());
 
-        SandboxViolationException nul = catchThrowableOfType(() -> workspace.readText("a\u0000b", 10),
-                SandboxViolationException.class);
+        SandboxViolationException nul = catchThrowableOfType(SandboxViolationException.class,
+                () -> workspace.readText("a\u0000b", 10));
         assertThat(nul.details()).containsEntry("path", "a\\u0000b");
     }
 

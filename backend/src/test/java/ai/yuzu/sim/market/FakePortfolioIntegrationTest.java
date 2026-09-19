@@ -109,8 +109,8 @@ class FakePortfolioIntegrationTest {
     @Test
     void cashNeverGoesNegative() {
         AgentProfile analyst = analyst(50_000, 50_000);
-        ConflictException rejected = catchThrowableOfType(() -> portfolio.executeTrade(analyst.agentId(), "YUZU", BUY,
-                new BigDecimal("100")), ConflictException.class);
+        ConflictException rejected = catchThrowableOfType(ConflictException.class,
+                () -> portfolio.executeTrade(analyst.agentId(), "YUZU", BUY, new BigDecimal("100")));
         assertThat(rejected).hasMessageContaining("Insufficient cash");
         Trade trade = portfolio.trade(analyst.agentId(), (String) rejected.details().get("tradeId"));
         assertThat(trade.status()).isEqualTo(Trade.Status.REJECTED);
@@ -138,8 +138,8 @@ class FakePortfolioIntegrationTest {
     @Test
     void hardLimitsBlockTrades() {
         AgentProfile analyst = defaultAnalyst();
-        PermissionDeniedException tooBig = catchThrowableOfType(() -> portfolio.executeTrade(analyst.agentId(), "YUZU",
-                BUY, new BigDecimal("20")), PermissionDeniedException.class);
+        PermissionDeniedException tooBig = catchThrowableOfType(PermissionDeniedException.class,
+                () -> portfolio.executeTrade(analyst.agentId(), "YUZU", BUY, new BigDecimal("20")));
         assertThat(tooBig).hasMessageContaining("exceeds the per-trade maximum of $1,000.00");
         assertThat(portfolio.trade(analyst.agentId(), (String) tooBig.details().get("tradeId")).status())
                 .isEqualTo(Trade.Status.BLOCKED);

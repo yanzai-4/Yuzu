@@ -147,8 +147,8 @@ class FakeMailboxIntegrationTest {
     void disallowedDomainIsRecordedAsBlockedAndDenied() {
         AgentProfile agent = liaison(10);
         long cursor = hub.currentCursor();
-        PermissionDeniedException denied = catchThrowableOfType(() -> mailbox.send(agent.agentId(), null,
-                List.of("eve@evil.test"), "Our price list", "Attached."), PermissionDeniedException.class);
+        PermissionDeniedException denied = catchThrowableOfType(PermissionDeniedException.class,
+                () -> mailbox.send(agent.agentId(), null, List.of("eve@evil.test"), "Our price list", "Attached."));
         assertThat(denied).hasMessageContaining("evil.test");
         assertThat(denied.agentId()).isEqualTo(agent.agentId().value());
         assertThat(denied.details()).containsKey("emailId").containsEntry("codes", List.of("DOMAIN_NOT_ALLOWED"));
@@ -207,8 +207,9 @@ class FakeMailboxIntegrationTest {
     void agentsWithoutEmailSendAreBlocked() {
         AgentProfile researcher = agents.create(room, new CreateAgentRequest(Role.RESEARCHER, null, null, null, null,
                 new Limits.LimitsPatch(List.of("acme.test"), 10, null, null, null)));
-        PermissionDeniedException denied = catchThrowableOfType(() -> mailbox.send(researcher.agentId(), null,
-                List.of("dana.kim@acme.test"), "Findings", "Here is the summary."), PermissionDeniedException.class);
+        PermissionDeniedException denied = catchThrowableOfType(PermissionDeniedException.class,
+                () -> mailbox.send(researcher.agentId(), null, List.of("dana.kim@acme.test"), "Findings",
+                        "Here is the summary."));
         assertThat(denied.details()).containsEntry("codes", List.of("MISSING_PERMISSION"));
     }
 

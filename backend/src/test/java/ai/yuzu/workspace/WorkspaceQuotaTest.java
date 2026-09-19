@@ -37,8 +37,8 @@ class WorkspaceQuotaTest {
         assertThat(workspace.usedBytes()).isEqualTo(600_000);
         assertThat(workspace.quotaBytes()).isEqualTo(1_000_000);
 
-        PermissionDeniedException denied = catchThrowableOfType(
-                () -> workspace.writeText("files/b.txt", "b".repeat(600_000)), PermissionDeniedException.class);
+        PermissionDeniedException denied = catchThrowableOfType(PermissionDeniedException.class,
+                () -> workspace.writeText("files/b.txt", "b".repeat(600_000)));
         assertThat(denied).hasMessageContaining("quota");
         assertThat(denied.agentId()).isEqualTo("agent-a11c");
         assertThat(denied.details()).containsEntry("reason", "quota").containsEntry("usedBytes", 600_000L)
