@@ -20,16 +20,18 @@
 - `Ticket` — contract DTO; `creator` and `assignedBy` are Java-only (`@JsonIgnore`).
 - `TicketRow` — domain row (UTC instants, assigner, version). `NewTicket` — creation request.
 - `TicketLinkTarget` — implemented by the task-list service so `linkList` updates both sides of the link.
-- `TicketGovernor` (v0.0.29) — a `ChatMessageListener` that keeps intake honest **in code, not in a prompt**: when a
+- `TicketGovernor` (v0.0.34) — a `ChatMessageListener` that keeps intake honest **in code, not in a prompt**: when a
   coworker who may not assign work (`TASK_ASSIGN` missing) tells a human "on it, I'll do that", holds no live
-  ticket and did not loop the project manager in, the PM @mentions that coworker once and asks for a ticket, and
-  the PM's mind receives a governance notice (`NoticeService`) so it creates and assigns one.
+  ticket, **was not @mentioned by that human** (a direct request is its own work) and did not loop the project
+  manager in, the PM @mentions that coworker once and asks for a ticket, and the PM's mind receives a governance
+  notice (`NoticeService`) so it creates and assigns one.
 
 ## The ticket governor
 
 ```
 coworker ──"@Alice on it, I'll build it"──▶ TicketGovernor (code checks, no model call)
-   role ≠ PM and no TASK_ASSIGN ∧ @mentions a human ∧ not @the PM ∧ no ASSIGNED/IN_PROGRESS/DONE ticket
+   role ≠ PM and no TASK_ASSIGN ∧ the human did not @mention it ∧ @mentions a human ∧ not @the PM
+   ∧ no ASSIGNED/IN_PROGRESS/DONE ticket
    ∧ commitment phrase ∧ no "ticket/assign/check with" ∧ causalDepth < LoopGuard.MAX_DEPTH ∧ room budget left
         ├─▶ chat: PM "@Kumquat please pause: there is no ticket for this yet …" (depth + 1, closure = false)
         └─▶ NoticeService ─▶ the PM's pool ("I should create a ticket and assign it")

@@ -1,6 +1,6 @@
 # ai.yuzu.external.chat
 
-> v0.0.15 🍊 Chat triage: does a new group message matter to this agent?
+> v0.0.34 🍊 Chat triage: does a new group message matter to this agent?
 
 Flow: `ChatService` → `ChatFanout` (for every present agent) → `ChatPrefilter` (code, zero cost) →
 `ChatInbox` (per agent, single flight, 400 ms debounce, mentions urgent, bursts coalesced) →
@@ -13,7 +13,11 @@ Flow: `ChatService` → `ChatFanout` (for every present agent) → `ChatPrefilte
   `causalDepth + 1`, respects the loop guard. FORWARD: posts the acknowledgement for human work requests,
   then calls the `ChatForwarder` (implemented by the intake pipeline).
 - `ChatPrefilter` — DROP (own messages, `fanout=false`), CONTEXT_ONLY (agent closures, depth ≥ 6, paused
-  pairs), EVALUATE (everything else; every agent evaluates every human message).
+  pairs, **and human requests that do not @mention this agent when the workgroup has a project
+  manager**), EVALUATE (everything else). Intake belongs to the PM: a human request with no @mention is
+  evaluated only by agents holding `TASK_ASSIGN`, so nobody else can acknowledge or pick up work that was
+  never given to them. `@all` and direct @mentions always reach the agent, and a workgroup without any
+  `TASK_ASSIGN` agent falls back to "everyone evaluates" so a request is never dropped.
 - `LoopGuard` — causal depth, pair limiter (> 6 mentions / 2 min), @all reply budget (2), room budget
   (30 agent posts / min). Overrides "must answer an agent's @mention".
 - `ChatInbox` / `ChatInboxFactory` — per-agent component (`AgentComponent`).

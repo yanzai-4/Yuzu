@@ -102,6 +102,18 @@ class TicketGovernorTest {
         settings.update(LlmProvider.OPENAI, null, null);
     }
 
+    /** v0.0.34 🍊 A human who @mentions a coworker gives it the work directly: the governor stays quiet. */
+    @Test
+    void staysQuietWhenTheHumanAskedThatCoworkerDirectly() throws Exception {
+        chat.postHuman(room, alice.id(), "@Kumquat can you build the Citrus Spark landing page by Friday?");
+        chat.post(ChatPost.agent(room, engineer.agentId().value(), engineer.name(),
+                "@Alice on it, I'll build the landing page today.", 1, false, null));
+        Thread.sleep(600);
+        assertThat(window.recent(room, 20)).noneMatch(m -> m.kind() == MessageKind.TEXT
+                && m.authorId().equals(pm.agentId().value()));
+        assertThat(CapturingMain.RECEIVED).noneMatch(m -> m.text().contains("without a ticket"));
+    }
+
     /** v0.0.29 🍊 One @mention from the PM, then silence: the closure reply stops the governor for good. */
     @Test
     void warnsOnceThenStaysQuietAfterAClosureReply() throws Exception {

@@ -1,10 +1,10 @@
 # features/agents
 
-> v0.0.30 🍊 Hiring, inspecting and controlling the citrus coworkers.
+> v0.0.34 🍊 Hiring, inspecting and controlling the citrus coworkers.
 
 | File | Responsibility |
 |---|---|
-| `AgentsDialog.tsx`, `HireAgentForm.tsx`, `AgentRoster.tsx` | the roster and the hire dialog (max 8 → `AGENT_LIMIT`) |
+| `AgentsDialog.tsx`, `HireAgentForm.tsx`, `AgentRoster.tsx` | the roster and the hire dialog (max 8 → `AGENT_LIMIT`; the Project Manager preset is disabled once the workgroup has one, and the backend refuses a second with `CONFLICT`) |
 | `AgentInspector.tsx` | the drawer of one coworker: live status, tasks, profile, permissions, memory |
 | `InspectorControls.tsx` | Pause / Resume / Interrupt and Retire (with an inline confirmation) |
 | `InspectorSettings.tsx`, `PermissionChecklist.tsx`, `LimitsEditor.tsx`, `permissions.ts` | scope editing |

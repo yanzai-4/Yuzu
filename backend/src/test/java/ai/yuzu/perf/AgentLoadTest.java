@@ -170,9 +170,11 @@ class AgentLoadTest {
         jdbc.sql("INSERT INTO room (id, name, created_at) VALUES (:id, 'Load room', UTC_TIMESTAMP(3))")
                 .param("id", roomId).update();
         String[] names = {"Yuzu", "Lime", "Kumquat", "Pomelo", "Citron", "Sudachi", "Calamansi", "Bergamot"};
+        // v0.0.34 🍊 Exactly one project manager per workgroup; the rest cycle through the other roles.
+        Role[] others = {Role.RESEARCHER, Role.ENGINEER, Role.CUSTOMER_LIAISON, Role.FINANCE_ANALYST};
         for (int i = 0; i < AGENTS; i++) {
-            room.add(agents.createNamed(roomId, new CreateAgentRequest(Role.values()[i % Role.values().length],
-                    null, null, null, null, null), names[i]));
+            Role role = i == 0 ? Role.PROJECT_MANAGER : others[(i - 1) % others.length];
+            room.add(agents.createNamed(roomId, new CreateAgentRequest(role, null, null, null, null, null), names[i]));
         }
         alice = users.join(roomId, "Alice");
         bob = users.join(roomId, "Bob");

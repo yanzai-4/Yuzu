@@ -81,6 +81,23 @@ class AgentIntegrationTest {
         assertThat(list).doesNotContain(id);
     }
 
+    /** v0.0.34 🍊 A workgroup has exactly one project manager; hiring a second one is a CONFLICT. */
+    @Test
+    void onlyOneProjectManagerPerWorkgroup() throws Exception {
+        jdbc.sql("INSERT INTO room (id, name, created_at) VALUES ('room-00pm', 'PM room', UTC_TIMESTAMP(3))").update();
+        JsonNode pm = create("room-00pm", "PROJECT_MANAGER");
+        String body = mvc.perform(post("/api/rooms/room-00pm/agents").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"role\":\"PROJECT_MANAGER\"}"))
+                .andExpect(status().isConflict()).andReturn().getResponse().getContentAsString();
+        JsonNode error = mapper.readTree(body);
+        assertThat(error.get("code").asText()).isEqualTo("CONFLICT");
+        assertThat(error.get("message").asText()).contains(pm.get("name").asText());
+        // Every other role is still free to hire, and the PM can be replaced after retiring it.
+        create("room-00pm", "ENGINEER");
+        mvc.perform(delete("/api/agents/" + pm.get("agentId").asText())).andExpect(status().isNoContent());
+        assertThat(create("room-00pm", "PROJECT_MANAGER").get("role").asText()).isEqualTo("PROJECT_MANAGER");
+    }
+
     /** v0.0.6 🍊 The presets endpoint lists all five roles. */
     @Test
     void presets() throws Exception {

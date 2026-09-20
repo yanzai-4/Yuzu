@@ -149,7 +149,7 @@ public class AgentService implements RoomMemberSource {
                 .toList();
     }
 
-    /** v0.0.6 🍊 Shared hiring path (limit check, id + name allocation, events). */
+    /** v0.0.34 🍊 Shared hiring path (limit + single-PM check, id + name allocation, events). */
     private AgentProfile hire(String roomId, CreateAgentRequest request, String preferredName) {
         if (!rooms.exists(roomId)) {
             throw new NotFoundException("Room " + roomId + " does not exist.");
@@ -158,9 +158,17 @@ public class AgentService implements RoomMemberSource {
         lock.lock();
         AgentProfile created;
         try {
-            if (repository.findPresentByRoom(roomId).size() >= MAX_AGENTS) {
+            List<AgentProfile> present = repository.findPresentByRoom(roomId);
+            if (present.size() >= MAX_AGENTS) {
                 throw new AgentLimitException("This workgroup already has " + MAX_AGENTS + " coworkers.")
                         .with("max", MAX_AGENTS);
+            }
+            if (request.role() == Role.PROJECT_MANAGER) {
+                present.stream().filter(a -> a.role() == Role.PROJECT_MANAGER).findFirst().ifPresent(pm -> {
+                    throw new ConflictException("A workgroup has exactly one project manager, and this one is "
+                            + pm.name() + ". Retire " + pm.name() + " first, or hire a different role.")
+                            .with("projectManager", pm.name()).forAgent(pm.agentId().value());
+                });
             }
             List<String> taken = repository.namesInRoom(roomId);
             List<String> humanNames = directory.members(roomId).stream().filter(m -> !m.isAgent())

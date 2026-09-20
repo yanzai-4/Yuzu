@@ -43,7 +43,10 @@ export function OfficeFullNotice({ error }: { error?: ApiError | null }) {
 export function HireAgentForm({ onHired }: { onHired: (agent: Agent) => void }) {
   const roles = useAsync(listRoles, 'roles');
   const preferredRole = useUiStore((s) => s.hireRole);
-  const full = useActiveAgents().length >= DESK_COUNT;
+  const active = useActiveAgents();
+  const full = active.length >= DESK_COUNT;
+  // v0.0.34 🍊 A workgroup has exactly one project manager (the backend refuses a second one with CONFLICT).
+  const projectManager = active.find((a) => a.role === 'PROJECT_MANAGER')?.name ?? null;
   const [draft, setDraft] = useState<HireDraft | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
@@ -101,17 +104,20 @@ export function HireAgentForm({ onHired }: { onHired: (agent: Agent) => void }) 
         <div className="grid gap-2 sm:grid-cols-2" role="radiogroup" aria-label="Role preset">
           {(roles.data ?? []).map((preset) => {
             const selected = draft?.role === preset.role;
+            const taken = preset.role === 'PROJECT_MANAGER' && projectManager !== null;
             return (
               <button
                 key={preset.role}
                 type="button"
                 role="radio"
                 aria-checked={selected}
+                disabled={taken}
                 onClick={() => pick(preset)}
                 className={clsx(
                   'rounded-xl border p-3 text-left transition-colors',
                   selected ? 'border-accent bg-accent-soft ring-2 ring-accent/25' : 'border-line hover:border-line-strong hover:bg-surface-2',
                   !draft && preferredRole === preset.role && 'border-accent',
+                  taken && 'cursor-not-allowed opacity-55 hover:border-line hover:bg-transparent',
                 )}
               >
                 <span className="flex items-center justify-between gap-2">
@@ -119,7 +125,9 @@ export function HireAgentForm({ onHired }: { onHired: (agent: Agent) => void }) 
                   <span className="text-[10px] font-semibold text-ink-3 uppercase">{ROLE_LABELS[preset.role] ?? preset.role}</span>
                 </span>
                 <span className="mt-1 block text-xs text-ink-2">{preset.description}</span>
-                <span className="mt-1.5 block text-[11px] text-ink-3">{preset.permissions.length} permissions</span>
+                <span className="mt-1.5 block text-[11px] text-ink-3">
+                  {taken ? `${projectManager} is already the project manager` : `${preset.permissions.length} permissions`}
+                </span>
               </button>
             );
           })}

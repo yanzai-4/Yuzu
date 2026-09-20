@@ -92,9 +92,11 @@ class BudgetPauseIntegrationTest {
         jdbc.sql("INSERT INTO room (id, name, created_at) VALUES (:id, 'Budget room', UTC_TIMESTAMP(3))")
                 .param("id", roomId).update();
         String[] names = {"Yuzu", "Lime", "Kumquat", "Pomelo", "Citron", "Sudachi", "Calamansi", "Bergamot"};
+        // v0.0.34 🍊 Exactly one project manager per workgroup; the rest cycle through the other roles.
+        Role[] others = {Role.RESEARCHER, Role.ENGINEER, Role.CUSTOMER_LIAISON, Role.FINANCE_ANALYST};
         for (int i = 0; i < AGENTS; i++) {
-            room.add(agents.createNamed(roomId, new CreateAgentRequest(Role.values()[i % Role.values().length],
-                    null, null, null, null, null), names[i]));
+            Role role = i == 0 ? Role.PROJECT_MANAGER : others[(i - 1) % others.length];
+            room.add(agents.createNamed(roomId, new CreateAgentRequest(role, null, null, null, null, null), names[i]));
         }
         alice = users.join(roomId, "Alice");
     }
@@ -112,7 +114,8 @@ class BudgetPauseIntegrationTest {
     void exhaustedBudgetStopsEveryAgentAndCanBeRaised() throws Exception {
         assertThat(budget.isPaused()).isFalse();
         for (int i = 0; i < 12; i++) {
-            chat.postHuman(roomId, alice.id(), "Sprint update " + i + ": the Citrus Spark bottle ships Friday.");
+            // @all so every agent evaluates: without a mention only the project manager does intake (v0.0.34).
+            chat.postHuman(roomId, alice.id(), "@all sprint update " + i + ": the Citrus Spark bottle ships Friday.");
         }
         await(budget::isPaused);
         int afterPause = awaitStableRequestCount();
@@ -138,7 +141,7 @@ class BudgetPauseIntegrationTest {
 
         // No further human message may reach the provider.
         for (int i = 0; i < 12; i++) {
-            chat.postHuman(roomId, alice.id(), "Another update " + i + " while the budget is exhausted.");
+            chat.postHuman(roomId, alice.id(), "@all another update " + i + " while the budget is exhausted.");
         }
         Thread.sleep(600);
         assertThat(awaitStableRequestCount()).as("a paused budget must send nothing").isEqualTo(afterPause);
@@ -147,7 +150,7 @@ class BudgetPauseIntegrationTest {
         // Raising the ceiling puts the agents back to work.
         budget.setLimits(10_000_000, null);
         assertThat(budget.isPaused()).isFalse();
-        chat.postHuman(roomId, alice.id(), "We are funded again, please continue.");
+        chat.postHuman(roomId, alice.id(), "@all we are funded again, please continue.");
         await(() -> server.requests().size() > afterPause);
         assertThat(meter.billableTokens()).isGreaterThan(status.usedTokens());
     }

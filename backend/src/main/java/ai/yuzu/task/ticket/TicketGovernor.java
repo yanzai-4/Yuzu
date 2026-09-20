@@ -30,11 +30,11 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Pattern;
 
 /**
- * v0.0.29 🍊 Code (not a prompt) that catches a coworker taking on a human request privately, without a ticket.
+ * v0.0.34 🍊 Code (not a prompt) that catches a coworker taking on a human request privately, without a ticket.
  *
  * <p>Every group message is checked: when a coworker who may not assign work tells a human "on it, I'll do
- * that", has no open ticket and did not route the request through the project manager, the PM @mentions the
- * coworker once and asks for the work to go through a ticket. The PM's mind is told as well (a governance
+ * that", has no open ticket, was not @mentioned by that human (a direct request IS its own work) and did not
+ * route the request through the project manager, the PM @mentions the coworker once and asks for a ticket. The PM's mind is told as well (a governance
  * notice), so it can create and assign that ticket.</p>
  *
  * <p>Loop safety, on top of the five existing layers: at most one warning per coworker and episode, the
@@ -73,6 +73,8 @@ public class TicketGovernor implements ChatMessageListener {
     private final LoopGuard loopGuard;
     private final ChatService chat;
     private final Map<String, Stage> stages = new ConcurrentHashMap<>();
+    /** v0.0.34 🍊 Agents the latest human message of a room @mentioned: a direct request IS their own work. */
+    private final Map<String, Set<String>> addressed = new ConcurrentHashMap<>();
     private final Map<String, ReentrantLock> roomLocks = new ConcurrentHashMap<>();
 
     /** v0.0.29 🍊 Injects collaborators (chat lazily: the chat service fans out to this listener). */
@@ -92,6 +94,7 @@ public class TicketGovernor implements ChatMessageListener {
         if (message.authorKind() == AuthorKind.HUMAN) {
             stages.entrySet().removeIf(entry ->
                     entry.getKey().startsWith(message.roomId() + "|") && entry.getValue() == Stage.CLOSED);
+            addressed.put(message.roomId(), Set.copyOf(message.mentions()));
             return;
         }
         if (message.authorKind() != AuthorKind.AGENT || message.kind() != MessageKind.TEXT || !message.fanout()) {
@@ -131,6 +134,10 @@ public class TicketGovernor implements ChatMessageListener {
             return false;
         }
         if (author.role() == Role.PROJECT_MANAGER || author.scope().has(Permission.TASK_ASSIGN)) {
+            return false;
+        }
+        // A human who @mentions a coworker by name gives it the work directly; the PM has nothing to correct.
+        if (addressed.getOrDefault(message.roomId(), Set.of()).contains(author.agentId().value())) {
             return false;
         }
         String content = message.content();

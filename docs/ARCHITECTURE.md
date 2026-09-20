@@ -11,7 +11,8 @@ human collaboration through a group chat, and detailed real-time behavior tracin
 ## 2. System overview
 
 ```
-Group msg ─▶ ChatService(persist, RoomWindow, SSE) ─▶ fan-out ─▶ ChatPrefilter(code) ─▶ ChatInbox[agent] ─▶ Chat module
+Group msg ─▶ ChatService(persist, RoomWindow, SSE) ─▶ fan-out ─▶ ChatPrefilter(code; a human request with no
+              @mention reaches the PM only) ─▶ ChatInbox[agent] ─▶ Chat module
    Chat module ─IGNORE─▶ nothing │ ─REPLY─▶ post (code adds @author) │ ─FORWARD─▶ (ack in chat) ─▶ Intake
 Intake: Safety(GATE) ─unsafe─▶ BlockNotice (Chat module explains) ─▶ YELLOW message
                      └─safe─▶ [Planning (planningLock) ∥ Cognition(read habits)] ─▶ Pool(EXTERNAL) + Subconscious.onNew
