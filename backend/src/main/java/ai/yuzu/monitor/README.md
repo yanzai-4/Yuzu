@@ -105,3 +105,5 @@ one ends; `activeModules` lists every running module once, most relevant first.
 | `AgentLookup`, `AgentServiceLookup` | the monitor's view of the agent registry (room, paused, retired) |
 | `MonitorAgentListener` | startup preload + hire / edit / pause / retire → board registration and SYSTEM events |
 | `AgentStatusView` | contract type `AgentStatus` |
+
+- `MonitorModuleReporter` (v0.0.34) — adapter from `module.ModuleReporter` to this service.

@@ -8,6 +8,7 @@ import ai.yuzu.chat.ChatMessageListener;
 import ai.yuzu.chat.RoomWindow;
 import org.springframework.stereotype.Component;
 
+import java.time.Duration;
 import java.util.List;
 
 /**
@@ -15,6 +16,9 @@ import java.util.List;
  */
 @Component
 public class ChatFanout implements ChatMessageListener {
+
+    /** v0.0.34 🍊 How soon after a coworker's message a human counts as answering it. */
+    static final Duration ANSWER_WINDOW = Duration.ofMinutes(3);
 
     private final AgentService agents;
     private final AgentRuntimeManager runtimes;
@@ -47,9 +51,17 @@ public class ChatFanout implements ChatMessageListener {
         }
     }
 
-    /** v0.0.34 🍊 Author of the message before this one: a human speaking right after a coworker answers it. */
+    /**
+     * v0.0.34 🍊 Author of the message right before this one, when it is fresh enough that this message reads
+     * as an answer to it ({@link #ANSWER_WINDOW}). An older message means the human started a new topic.
+     */
     private String previousAuthorId(ChatMessage message) {
         List<ChatMessage> recent = window.recent(message.roomId(), 2);
-        return recent.size() < 2 ? null : recent.get(recent.size() - 2).authorId();
+        if (recent.size() < 2) {
+            return null;
+        }
+        ChatMessage previous = recent.get(recent.size() - 2);
+        Duration since = Duration.between(previous.createdAt(), message.createdAt());
+        return since.compareTo(ANSWER_WINDOW) <= 0 ? previous.authorId() : null;
     }
 }

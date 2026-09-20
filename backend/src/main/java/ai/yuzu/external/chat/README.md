@@ -16,8 +16,10 @@ Flow: `ChatService` → `ChatFanout` (for every present agent) → `ChatPrefilte
   pairs, **and human requests that do not @mention this agent when the workgroup has a project
   manager**), EVALUATE (everything else). Intake belongs to the PM: a human request with no @mention is
   evaluated only by agents holding `TASK_ASSIGN`, so nobody else can acknowledge or pick up work that was
-  never given to them. `@all` and direct @mentions always reach the agent, and a workgroup without any
-  `TASK_ASSIGN` agent falls back to "everyone evaluates" so a request is never dropped.
+  never given to them. A human still reaches a coworker directly by @mentioning it, with `@all`, by writing
+  its name, or by speaking within 3 minutes of that coworker's own message (the answer to the question it just
+  asked). A workgroup without any `TASK_ASSIGN` agent falls back to "everyone evaluates" so a request is never
+  dropped.
 - `LoopGuard` — causal depth, pair limiter (> 6 mentions / 2 min), @all reply budget (2), room budget
   (30 agent posts / min). Overrides "must answer an agent's @mention".
 - `ChatInbox` / `ChatInboxFactory` — per-agent component (`AgentComponent`).
